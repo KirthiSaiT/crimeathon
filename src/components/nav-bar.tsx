@@ -1,14 +1,12 @@
 "use client";
 
+import { useState } from "react";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
-import { motion, useReducedMotion } from "framer-motion";
-import { ChartColumn, ChevronsUpDown, FileText, FlaskConical, History, KeyRound, Landmark, Moon, Scale, Sun, TriangleAlert, Upload } from "lucide-react";
+import { ChartColumn, ChevronsUpDown, FileText, FlaskConical, History, KeyRound, Landmark, Menu, Moon, Scale, Sun, TriangleAlert, Upload, X } from "lucide-react";
 import { useTheme } from "@/hooks/use-theme";
-import { Button } from "@/components/ui/button";
 import { DropdownMenu, DropdownMenuContent, DropdownMenuRadioGroup, DropdownMenuRadioItem, DropdownMenuTrigger } from "@/components/ui/dropdown-menu";
 import { roleLabel, useRole } from "@/components/role-provider";
-import { springLayout } from "@/lib/spring";
 import { cn } from "@/lib/utils";
 import { APP_NAME } from "@/lib/brand";
 import type { Role } from "@/lib/types";
@@ -24,86 +22,126 @@ export const navCase = [
   { href: "/simulation", label: "Simulation", icon: FlaskConical },
 ];
 export const navTools = [{ href: "/upload", label: "Upload logs", icon: Upload }];
-const allNav = [...navCase, ...navTools];
 
-/*
-  Translucent floating chrome: content scrolls UNDER a blurred material bar, and a scroll-edge fade
-  sits beneath it instead of a hard divider. The destinations are one segmented strip whose selected
-  pill slides between them.
-*/
-export function NavBar() {
+function NavGroup({ label, items, pathname, onNavigate }: { label: string; items: typeof navCase; pathname: string; onNavigate?: () => void }) {
+  return (
+    <div>
+      <p className="px-3 pb-1.5 text-xs text-[var(--ink-tertiary)]">{label}</p>
+      <ul className="flex flex-col">
+        {items.map((item) => {
+          const active = pathname === item.href;
+          return (
+            <li key={item.href}>
+              <Link
+                href={item.href}
+                onClick={onNavigate}
+                aria-current={active ? "page" : undefined}
+                className={cn(
+                  "flex h-10 items-center gap-2.5 border-l-2 px-3 text-sm transition-colors duration-[var(--dur-micro)]",
+                  active
+                    ? "border-[var(--ink)] bg-[var(--bg-elevated)] font-medium text-[var(--ink)]"
+                    : "border-transparent text-[var(--ink-secondary)] hover:bg-[var(--bg-elevated)] hover:text-[var(--ink)]",
+                )}
+              >
+                <item.icon className="size-4 shrink-0" aria-hidden="true" />
+                {item.label}
+              </Link>
+            </li>
+          );
+        })}
+      </ul>
+    </div>
+  );
+}
+
+function Controls() {
   const { theme, toggle, mounted } = useTheme();
   const { role, setRole } = useRole();
+  return (
+    <div className="flex items-center gap-2">
+      <DropdownMenu>
+        <DropdownMenuTrigger
+          aria-label="Change role"
+          className="flex h-10 min-w-0 flex-1 items-center justify-between gap-2 border border-[var(--line-strong)] bg-[var(--bg-elevated)] px-3 text-sm outline-none hover:border-[var(--ink)] data-popup-open:border-[var(--ink)]"
+        >
+          <span className="truncate">{roleLabel[role]}</span>
+          <ChevronsUpDown className="size-4 shrink-0 text-[var(--ink-tertiary)]" aria-hidden="true" />
+        </DropdownMenuTrigger>
+        <DropdownMenuContent align="start" className="w-56">
+          <DropdownMenuRadioGroup value={role} onValueChange={(v) => setRole(v as Role)}>
+            <DropdownMenuRadioItem value="analyst">Analyst: review alerts</DropdownMenuRadioItem>
+            <DropdownMenuRadioItem value="approver">Approver: release holds</DropdownMenuRadioItem>
+            <DropdownMenuRadioItem value="viewer">Viewer: read only</DropdownMenuRadioItem>
+          </DropdownMenuRadioGroup>
+        </DropdownMenuContent>
+      </DropdownMenu>
+      <button
+        type="button"
+        onClick={toggle}
+        aria-label={theme === "dark" ? "Switch to light" : "Switch to dark"}
+        className="grid size-10 shrink-0 place-items-center border border-[var(--line-strong)] bg-[var(--bg-elevated)] outline-none hover:border-[var(--ink)]"
+      >
+        {mounted && theme === "dark" ? <Sun className="size-4" aria-hidden="true" /> : <Moon className="size-4" aria-hidden="true" />}
+      </button>
+    </div>
+  );
+}
+
+function Wordmark() {
+  return (
+    <Link href="/" className="flex flex-col leading-tight">
+      <span className="text-lg font-bold tracking-[var(--track-display)]">{APP_NAME}</span>
+      <span className="font-mono text-xs text-[var(--ink-tertiary)]">CR-26-047, H4CK_077</span>
+    </Link>
+  );
+}
+
+// A sidebar from 60rem up (nine destinations earn one); a top bar with a menu below it.
+export function NavBar() {
   const pathname = usePathname();
-  const reduce = useReducedMotion();
+  const [open, setOpen] = useState(false);
 
   return (
-    <header className="sticky top-0 z-50">
-      <div className="material-thin scroll-edge relative border-b border-[var(--hairline)]">
-        <div className="mx-auto flex h-14 max-w-6xl items-center justify-between gap-3 px-5">
-          <Link href="/" className="flex items-center gap-2.5 rounded-[var(--radius-sm)]">
-            <motion.span
-              initial={reduce ? false : { rotate: -12, scale: 0.9, opacity: 0 }}
-              animate={{ rotate: 0, scale: 1, opacity: 1 }}
-              transition={{ type: "spring", bounce: 0.3, visualDuration: 0.5 }}
-              className="grid size-8 place-items-center rounded-[var(--radius-sm)] bg-[var(--accent)] text-[var(--accent-ink)] shadow-[var(--shadow-sm)]"
-            >
-              <KeyRound className="size-[18px]" aria-hidden="true" />
-            </motion.span>
-            <span className="leading-none">
-              <span className="vibrant block text-[0.95rem] font-semibold tracking-[-0.01em]">{APP_NAME}</span>
-              <span className="block text-[0.68rem] text-[var(--ink-tertiary)]">Case CR-26-047 · Team H4CK_077</span>
-            </span>
-          </Link>
-
-          <div className="flex items-center gap-2">
-            <DropdownMenu>
-              <DropdownMenuTrigger
-                aria-label="Change role"
-                className="material flex h-10 items-center gap-2 rounded-[var(--radius-md)] px-3 text-sm outline-none hover:bg-[var(--bg-elevated)] data-popup-open:bg-[var(--bg-elevated)]"
-              >
-                <span className="grid size-5 place-items-center rounded-full bg-[var(--accent-subtle)] text-xs font-semibold text-[var(--accent)]">{roleLabel[role][0]}</span>
-                <span className="hidden sm:inline">{roleLabel[role]}</span>
-                <ChevronsUpDown className="size-4 text-[var(--ink-tertiary)]" aria-hidden="true" />
-              </DropdownMenuTrigger>
-              <DropdownMenuContent align="end" className="w-56">
-                <DropdownMenuRadioGroup value={role} onValueChange={(v) => setRole(v as Role)}>
-                  <DropdownMenuRadioItem value="analyst">Analyst: review alerts</DropdownMenuRadioItem>
-                  <DropdownMenuRadioItem value="approver">Approver: release holds</DropdownMenuRadioItem>
-                  <DropdownMenuRadioItem value="viewer">Viewer: read only</DropdownMenuRadioItem>
-                </DropdownMenuRadioGroup>
-              </DropdownMenuContent>
-            </DropdownMenu>
-            <Button variant="secondary" size="icon" aria-label={theme === "dark" ? "Switch to light" : "Switch to dark"} onClick={toggle}>
-              {mounted && theme === "dark" ? <Sun className="size-4" /> : <Moon className="size-4" />}
-            </Button>
-          </div>
+    <>
+      <aside className="sticky top-0 hidden h-screen flex-col gap-6 overflow-y-auto border-r-2 border-[var(--ink)] bg-[var(--bg-subtle)] py-6 min-[60rem]:flex">
+        <div className="px-3">
+          <Wordmark />
         </div>
-        <nav aria-label="Warden sections" className="mx-auto max-w-6xl overflow-x-auto px-5 pb-3 [scrollbar-width:none] [&::-webkit-scrollbar]:hidden">
-          <div role="tablist" className="material relative inline-flex min-w-max items-center gap-0.5 rounded-full p-1">
-            {allNav.map((item) => {
-              const active = pathname === item.href;
-              return (
-                <Link
-                  key={item.href}
-                  href={item.href}
-                  aria-current={active ? "page" : undefined}
-                  className={cn(
-                    "relative z-10 flex items-center gap-1.5 rounded-full px-3 py-1.5 text-sm font-medium whitespace-nowrap transition-colors",
-                    active ? "text-[var(--accent-ink)]" : "text-[var(--ink-secondary)] hover:text-[var(--ink)]",
-                  )}
-                >
-                  {active ? (
-                    <motion.span layoutId="nav-pill" transition={springLayout} className="absolute inset-0 -z-10 rounded-full bg-[var(--accent)] shadow-[var(--shadow-sm)]" />
-                  ) : null}
-                  <item.icon className="size-4" aria-hidden="true" />
-                  {item.label}
-                </Link>
-              );
-            })}
-          </div>
+        <nav aria-label={`${APP_NAME} sections`} className="flex flex-1 flex-col gap-6">
+          <NavGroup label="Case" items={navCase} pathname={pathname} />
+          <NavGroup label="Tools" items={navTools} pathname={pathname} />
         </nav>
-      </div>
-    </header>
+        <div className="px-3">
+          <Controls />
+        </div>
+      </aside>
+
+      <header className="sticky top-0 z-[var(--z-raised)] border-b-2 border-[var(--ink)] bg-[var(--bg-subtle)] min-[60rem]:hidden">
+        <div className="flex h-14 items-center justify-between gap-3 px-4">
+          <Wordmark />
+          <button
+            type="button"
+            onClick={() => setOpen((o) => !o)}
+            aria-expanded={open}
+            aria-controls="mobile-nav"
+            aria-label={open ? "Close menu" : "Open menu"}
+            className="grid size-11 place-items-center border border-[var(--line-strong)] bg-[var(--bg-elevated)] outline-none"
+          >
+            {open ? <X className="size-5" aria-hidden="true" /> : <Menu className="size-5" aria-hidden="true" />}
+          </button>
+        </div>
+        {open ? (
+          <div id="mobile-nav" className="flex max-h-[calc(100vh-3.5rem)] flex-col gap-5 overflow-y-auto border-t border-[var(--line)] py-4">
+            <nav aria-label={`${APP_NAME} sections`} className="flex flex-col gap-5">
+              <NavGroup label="Case" items={navCase} pathname={pathname} onNavigate={() => setOpen(false)} />
+              <NavGroup label="Tools" items={navTools} pathname={pathname} onNavigate={() => setOpen(false)} />
+            </nav>
+            <div className="px-4">
+              <Controls />
+            </div>
+          </div>
+        ) : null}
+      </header>
+    </>
   );
 }

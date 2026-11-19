@@ -100,8 +100,8 @@ function BankGateView() {
                       <Tag color={statusColor[c.status]}>{statusLabel[c.status]}</Tag>
                       {isReleased ? <Tag color="green">Released</Tag> : <Tag color="red">On hold</Tag>}
                     </p>
-                    <p className="mt-1 font-mono text-muted-foreground">
-                      {c.oldValue} to {c.newValue}
+                    <p className="mt-1 text-muted-foreground">
+                      <span className="font-mono">{c.oldValue}</span> to <span className="font-mono">{c.newValue}</span>
                     </p>
                     <p className="mt-1 text-muted-foreground">
                       {c.why} Changed by {c.changedBy} through {c.channel === "API" ? "the API" : c.channel === "UI" ? "the screen" : "a bulk import"} from {c.sourceIp} at {fmtTime(c.time)} UTC.

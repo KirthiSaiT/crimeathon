@@ -78,7 +78,7 @@ function KeysView() {
                 <li key={k.credential_id} className="border-b border-border">
                   <Collapsible>
                     <CollapsibleTrigger className="group flex w-full items-center gap-2 rounded-sm py-2.5 text-left text-sm hover:bg-paper-2">
-                      <ChevronRight className="size-4 text-muted-foreground transition-transform group-data-panel-open:rotate-90" aria-hidden="true" />
+                      <ChevronRight className="size-4 text-muted-foreground motion-safe:transition-transform group-data-panel-open:rotate-90" aria-hidden="true" />
                       <span className="num w-5 text-muted-foreground">{i + 1}</span>
                       <span className="font-mono font-medium">{k.credential_id}</span>
                       <span className="text-muted-foreground">{k.findings.length} findings</span>

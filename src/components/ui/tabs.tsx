@@ -15,9 +15,9 @@ function Tabs({ className, orientation = "horizontal", ...props }: TabsPrimitive
   )
 }
 
-// The segmented control of the GraphProof template: a material pill with a solid selected segment.
+// A ruled tab strip: a hairline under the row, the selected tab marked by a 2px ink bar.
 const tabsListVariants = cva(
-  "group/tabs-list material inline-flex w-fit max-w-full items-center gap-1 overflow-x-auto rounded-full p-1 text-[var(--ink-secondary)]",
+  "group/tabs-list inline-flex w-fit max-w-full items-center gap-1 overflow-x-auto border-b border-[var(--line)] text-[var(--ink-secondary)]",
   {
     variants: { variant: { default: "", line: "" } },
     defaultVariants: { variant: "default" },
@@ -40,8 +40,8 @@ function TabsTrigger({ className, ...props }: TabsPrimitive.Tab.Props) {
     <TabsPrimitive.Tab
       data-slot="tabs-trigger"
       className={cn(
-        "relative inline-flex items-center justify-center gap-1.5 rounded-full px-3.5 py-1.5 text-sm font-medium whitespace-nowrap text-[var(--ink-secondary)] transition-colors outline-none hover:text-[var(--ink)] focus-visible:ring-2 focus-visible:ring-[var(--accent)]/60 disabled:pointer-events-none disabled:opacity-50 [&_svg]:size-4 [&_svg]:shrink-0",
-        "data-active:bg-[var(--accent)] data-active:text-[var(--accent-ink)] data-active:shadow-[var(--shadow-sm)]",
+        "relative -mb-px inline-flex h-10 items-center justify-center gap-1.5 border-b-2 border-transparent px-3.5 text-sm font-medium whitespace-nowrap text-[var(--ink-secondary)] transition-colors outline-none hover:text-[var(--ink)] focus-visible:ring-2 focus-visible:ring-[var(--signal)] disabled:pointer-events-none disabled:opacity-50 [&_svg]:size-4 [&_svg]:shrink-0",
+        "data-active:border-[var(--ink)] data-active:text-[var(--ink)]",
         className,
       )}
       {...props}

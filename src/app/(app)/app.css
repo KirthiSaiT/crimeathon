@@ -1,0 +1,58 @@
+/* Hallmark · shape: app screen · genre: modern-minimal · theme: Terrazzo (deal 1/3, seed security-console-where-analysts-174b·095ff1c2·2026-11-19·r0) · redesign: full
+ * nav: sidebar, nine destinations, a menu under 60rem · signature: the incident ledger and the hold queue · states: loading, empty, error, full · terrazzo: off-white and black, ruled tables, square, no offset shadow on the page
+ * axes: light/geometric-sans/warm · posture: restrained · contrast: pass · v2.0.0 */
+/* Hallmark · pre-emit critique: P4 H4 E3 S4 R4 V3 · weakest: E, the verdict colours sit near the rust signal, so colour is never the only carrier: every tag also says its word. */
+
+@import url("./tokens.css");
+@import url("https://fonts.googleapis.com/css2?family=Onest:wght@400;500;700&family=JetBrains+Mono:wght@500&display=swap");
+
+/*
+  The inner pages (the (app) route group) take their look from the Terrazzo theme. The home page does not:
+  every override below is gated on :has(.ws), and .ws exists only in (app)/layout.tsx. Because the gate sits on
+  the root, dialogs and menus that portal to <body> pick the same tokens up.
+  The names are the GraphProof ones the screens already use, so a component restyles by token, not by edit.
+*/
+/* Type: one family, three weights, labels in the body face. */
+.ws {
+  font-family: var(--font-sans);
+  font-size: var(--text-md);
+  line-height: 1.55;
+  color: var(--ink);
+}
+.ws h1,
+.ws h2,
+.ws h3 {
+  font-family: var(--font-sans);
+  font-weight: 700;
+  font-synthesis: none;
+  line-height: 1.1;
+  max-width: none;
+  text-wrap: balance;
+  overflow-wrap: break-word;
+  min-width: 0;
+  letter-spacing: var(--track-display);
+}
+.ws h1 { font-size: var(--text-display); }
+.ws h2 { font-size: var(--text-section); }
+.ws h3 { font-size: var(--text-md); line-height: 1.25; letter-spacing: var(--track-title); }
+.ws .lead { font-size: var(--text-md); line-height: 1.5; letter-spacing: 0; max-width: 62ch; }
+.ws a { text-decoration-thickness: 1px; text-underline-offset: 0.16em; }
+.ws :focus-visible,
+:root:has(.ws) :focus-visible { outline: 2px solid var(--signal); outline-offset: 2px; }
+:root:has(.ws) ::selection { background: color-mix(in oklab, var(--signal) 25%, transparent); }
+
+/* Codes and counts in a table are figures: tabular, mono, the size of the text beside them. */
+.ws .num,
+.ws .font-mono { font-variant-numeric: tabular-nums; }
+
+/* The ledger: the page's one container recipe. Ink bar on top, hairlines between rows, no radius. */
+.ws .ledger { background: var(--bg-elevated); border-top: var(--rule-bar) solid var(--ink); border-bottom: var(--rule-hair) solid var(--line); }
+.ws .ledger-row { border-top: var(--rule-hair) solid var(--line); }
+.ws .ledger-row:first-child { border-top: 0; }
+
+@media (max-width: 40rem) {
+  :root:has(.ws) { --gutter: 16px; }
+}
+
+/* The upload field is a native input inside a label; the label is the control. */
+.ws .visually-hidden { position: absolute; width: 1px; height: 1px; overflow: hidden; clip-path: inset(50%); white-space: nowrap; }

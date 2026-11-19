@@ -1,0 +1,110 @@
+/* Terrazzo tokens for the inner pages, gated on :has(.ws) so the home page never reads them. Imported by app.css. */
+:root:has(.ws) {
+  color-scheme: light;
+  --font-sans: "Onest", ui-sans-serif, system-ui, sans-serif;
+  --font-mono: "JetBrains Mono", ui-monospace, "Cascadia Code", monospace;
+
+  --bg: oklch(96% 0.009 82);
+  --bg-subtle: oklch(92% 0.012 82);
+  --bg-elevated: oklch(99.5% 0.003 82);
+  --bg-card: oklch(99.5% 0.003 82);
+  --ink: oklch(16% 0.006 60);
+  --ink-secondary: oklch(33% 0.008 60);
+  --ink-tertiary: oklch(46% 0.01 60);
+  --ink-muted: oklch(56% 0.01 60);
+  --line: oklch(81% 0.012 80);
+  --line-strong: oklch(62% 0.012 70);
+  --hairline: oklch(81% 0.012 80 / 0.7);
+
+  /* Controls are ink. Rust is the one signal: a selected row, a code, the focus ring. */
+  --accent: oklch(16% 0.006 60);
+  --accent-hover: oklch(27% 0.006 60);
+  --accent-ink: oklch(99.5% 0.003 82);
+  --accent-subtle: oklch(91% 0.035 45);
+  --signal: oklch(50% 0.16 38);
+
+  /* Verdicts: always paired with a word. */
+  --tp: oklch(50% 0.19 27);
+  --tp-subtle: oklch(94% 0.03 27);
+  --fp: oklch(46% 0.12 150);
+  --fp-subtle: oklch(94% 0.035 150);
+  --nr: oklch(48% 0.12 75);
+  --nr-subtle: oklch(94% 0.045 85);
+  --info: oklch(46% 0.09 220);
+  --sev-critical: var(--tp);
+  --sev-high: oklch(50% 0.15 52);
+  --sev-medium: var(--nr);
+  --sev-low: var(--ink-tertiary);
+
+  --radius-sm: 0;
+  --radius-md: 0;
+  --radius-lg: 0;
+  --radius-pill: 0;
+  --radius: 0;
+  --shadow-sm: none;
+  --shadow-md: none;
+  --shadow-lg: 8px 8px 0 oklch(87.5% 0.014 80);
+
+  --track-display: -0.02em;
+  --track-headline: -0.02em;
+  --track-title: -0.01em;
+  --track-body: 0;
+
+  --page-width: 80rem;
+  --gutter: 32px;
+  --rule-bar: 2px;
+  --rule-hair: 1px;
+  --text-xs: 0.75rem;
+  --text-sm: 0.875rem;
+  --text-md: 1rem;
+  --text-section: 1.2rem;
+  --text-display: 1.728rem;
+  --dur-micro: 120ms;
+  --dur-short: 220ms;
+  --ease-out: cubic-bezier(0.16, 1, 0.3, 1);
+
+  --ring: var(--signal);
+  --sidebar: var(--bg-subtle);
+  --sidebar-foreground: var(--ink-secondary);
+  --sidebar-border: var(--line);
+  --sidebar-accent: var(--bg-elevated);
+  --sidebar-accent-foreground: var(--ink);
+  --sidebar-ring: var(--signal);
+  --chart-1: var(--ink);
+  --chart-2: var(--fp);
+  --chart-3: var(--nr);
+  --chart-4: var(--tp);
+  --chart-5: var(--ink-tertiary);
+}
+
+:root.dark:has(.ws) {
+  color-scheme: dark;
+  --bg: oklch(14% 0.005 60);
+  --bg-subtle: oklch(19% 0.006 60);
+  --bg-elevated: oklch(21% 0.006 60);
+  --bg-card: oklch(21% 0.006 60);
+  --ink: oklch(96% 0.01 80);
+  --ink-secondary: oklch(84% 0.01 80);
+  --ink-tertiary: oklch(72% 0.01 80);
+  --ink-muted: oklch(60% 0.01 80);
+  --line: oklch(32% 0.008 70);
+  --line-strong: oklch(50% 0.01 70);
+  --hairline: oklch(32% 0.008 70 / 0.7);
+
+  --accent: oklch(96% 0.01 80);
+  --accent-hover: oklch(88% 0.01 80);
+  --accent-ink: oklch(16% 0.006 60);
+  --accent-subtle: oklch(30% 0.05 45);
+  --signal: oklch(70% 0.14 40);
+
+  --tp: oklch(70% 0.17 25);
+  --tp-subtle: oklch(27% 0.06 27);
+  --fp: oklch(72% 0.13 150);
+  --fp-subtle: oklch(27% 0.05 150);
+  --nr: oklch(76% 0.12 80);
+  --nr-subtle: oklch(29% 0.05 85);
+  --info: oklch(74% 0.09 220);
+  --sev-high: oklch(72% 0.14 55);
+  --shadow-lg: 8px 8px 0 oklch(11% 0.005 60);
+}
+

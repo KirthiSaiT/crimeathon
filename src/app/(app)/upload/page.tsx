@@ -87,7 +87,7 @@ export default function UploadPage() {
       </Callout>
 
       <Section title="Choose files" note="CSV logs named by evidence number: E01, E02, E03, E05, E15, E18, E19.">
-        <label className="flex cursor-pointer flex-col items-start gap-2 rounded-lg border border-dashed border-border p-6 text-sm hover:bg-paper-2 focus-within:outline-2 focus-within:outline-focus">
+        <label className="flex cursor-pointer flex-col items-start gap-2 rounded-lg border border-dashed border-border p-6 text-sm hover:bg-[var(--bg-subtle)] focus-within:outline-2 focus-within:outline-[var(--signal)]">
           <span className="font-medium">Select log files</span>
           <span className="text-muted-foreground">You can pick several at once.</span>
           <input type="file" name="logs" multiple accept=".csv" className="visually-hidden" onChange={(e) => onFiles(e.target.files)} />
