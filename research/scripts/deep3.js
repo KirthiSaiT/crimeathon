@@ -1,0 +1,17 @@
+const {load,count}=require('./lib.js');
+const E02=load('evidence/E02_helpdeskr_audit_log.csv'),E05=load('evidence/E05_bluevault_access_log.csv'),E19=load('evidence/E19_vendor_master_change_log.csv'),E15=load('evidence/E15_network_link_flow_log.csv');
+const E01=load('evidence/E01_ledgerone_api_access.csv').concat(load('evidence/E18_ledgerone_api_access_1_to_7_sep.csv'));
+console.log('E02 error row:',E02.filter(r=>r.result=='error'));
+console.log('tb-sync-svc actions normal vs off-node:',count(E02.filter(r=>r.actor=='tb-sync-svc'&&/^10\.20\.4\.1[1-6]$/.test(r.source_ip)),r=>r.action),count(E02.filter(r=>r.actor=='tb-sync-svc'&&!/^10\.20\.4\.1[1-6]$/.test(r.source_ip)),r=>r.action));
+console.log('exports list:',E02.filter(r=>r.action.startsWith('export')).map(r=>r.ts_local+' '+r.actor+' '+r.action+' '+r.object_id+' '+r.source_ip).slice(0,60).join('\n'));
+console.log('== E05',E05.length,'principals',count(E05,r=>r.principal).filter(x=>!x[0].startsWith('user:')||x[1]>400).slice(0,10));
+console.log('non-user principals',count(E05.filter(r=>!r.principal.startsWith('user:')),r=>r.principal+' '+r.action));
+console.log('actions',count(E05,r=>r.action),'results',count(E05,r=>r.result));
+const bv=E05.filter(r=>r.principal.includes('bvk-7f3a'));
+console.log('bvk rows',bv.length,'src',count(bv,r=>r.source_ip||'(blank)'),'actions',count(bv,r=>r.action));
+console.log('bvk paths top',count(bv,r=>r.path.replace(/doc-\d+/,'doc-N')).slice(0,12));
+console.log('bytes by day (bvk, GB-ish)',count(bv,r=>new Date(+r.epoch_s*1000).toISOString().slice(0,10)).slice(0,6));
+console.log('who else reads bank-instructions/vendor-bank-details:',count(E05.filter(r=>/bank-instr|vendor-bank|payment-run/.test(r.path)),r=>r.principal+' '+r.action).slice(0,12));
+console.log('bvk burst paths:',count(bv.filter(r=>{const d=new Date(+r.epoch_s*1000).toISOString().slice(0,10);return d=='2026-08-14'||d=='2026-08-15'}),r=>r.path).slice(0,12));
+console.log('bvk burst bytes',bv.filter(r=>{const d=new Date(+r.epoch_s*1000).toISOString().slice(0,10);return d=='2026-08-14'||d=='2026-08-15'}).reduce((s,r)=>s+ +r.bytes,0));
+console.log('first/last bvk burst',new Date(Math.min(...bv.filter(r=>+r.epoch_s>1786000000||true).map(r=>+r.epoch_s))*1000).toISOString());

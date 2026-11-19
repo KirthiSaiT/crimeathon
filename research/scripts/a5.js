@@ -1,0 +1,13 @@
+const {load,count}=require('./lib.js');
+const e03=load('E03_sso_signin_log.csv'),e05=load('E05_bluevault_access_log.csv'),e19=load('E19_vendor_master_change_log.csv'),e14=load('E14_staff_roster.csv'),e01=load('E01_ledgerone_api_access.csv'),e18=load('E18_ledgerone_api_access_1_to_7_sep.csv');
+console.log('--- E19 UI bank changes with no approval'); e19.filter(x=>x.field=='bank_account'&&!x.approval_ref).forEach(x=>console.log(Object.values(x).join(',')));
+console.log('--- E05 principals',count(e05,x=>x.principal.startsWith('user:')?'user':x.principal));
+const iso=s=>new Date(s*1000).toISOString();
+console.log('--- E05 non-user principal'); e05.filter(x=>!x.principal.startsWith('user:')).forEach((x,i)=>{ if(i<5||x.principal.includes('bvk')&&!x.source_ip.startsWith('172.')) console.log(iso(x.epoch_s),Object.values(x).join(','))});
+console.log('bvk-7f3a by ip',count(e05.filter(x=>x.principal.includes('7f3a')),x=>x.source_ip||'(blank)'));
+console.log('--- E05 bvk-7f3a odd ips detail'); e05.filter(x=>x.principal.includes('7f3a')&&!/^(203|192)\./.test(x.source_ip)&&x.source_ip.slice(0,6)!='203.0.').slice(0,40).forEach(x=>console.log(iso(x.epoch_s),Object.values(x).join(',')));
+console.log('--- E03 failures',count(e03.filter(x=>x.result!='success'),x=>x.failure_reason+' '+x.user).slice(0,15));
+console.log('--- E03 users r.menon / a.kapoor / c.lawson non-routine'); e03.filter(x=>/menon|a\.kapoor|c\.lawson/.test(x.user)&&(x.result!='success'||x.city!='Chennai')).slice(0,25).forEach(x=>console.log(Object.values(x).join(',')));
+console.log('--- roster r.menon'); e14.filter(x=>/Rohan|menon/i.test(x.full_name+x.username)).forEach(x=>console.log(Object.values(x).join(',')));
+console.log('--- E03 rmenon logins after 30 Jun'); e03.filter(x=>x.user=='ro.menon'||x.user=='r.menon').filter(x=>x.ts_utc>'2026-06-30').slice(0,10).forEach(x=>console.log(Object.values(x).join(',')));
+console.log('key-tb-07 first/last ip use after 24 Aug', count([...e01,...e18].filter(x=>x.api_key_id=='key-tb-07'&&x.ts_utc>'2026-08-24'),x=>x.ts_utc.slice(0,10)).length);

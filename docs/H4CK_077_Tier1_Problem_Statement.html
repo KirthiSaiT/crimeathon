@@ -1,0 +1,61 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>H4CK_077 - Tier 1 Problem Statement - CR-26-047</title>
+<style>
+  @page { size: A4; margin: 10mm 12mm; }
+  * { box-sizing: border-box; }
+  body { font-family: Georgia, "Times New Roman", serif; font-size: 9pt; line-height: 1.3; color: #111; margin: 0; }
+  header { border-bottom: 2px solid #111; padding-bottom: 3px; margin-bottom: 5px; }
+  h1 { font-family: Arial, Helvetica, sans-serif; font-size: 13pt; margin: 0 0 1px; }
+  .meta { font-family: Arial, Helvetica, sans-serif; font-size: 8.3pt; color: #333; }
+  h2 { font-family: Arial, Helvetica, sans-serif; font-size: 8.6pt; margin: 6px 0 1px; text-transform: uppercase; letter-spacing: .5px; color: #222; }
+  p { margin: 1px 0 2px; text-align: left; }
+  b { font-weight: 700; }
+  .box { border-left: 3px solid #111; background: #f1f1f1; padding: 3px 7px; margin: 3px 0 2px; }
+  .rec { font-family: Arial, Helvetica, sans-serif; font-size: 7.6pt; color: #444; margin-top: 4px; border-top: .5px solid #999; padding-top: 2px; }
+  ol { margin: 1px 0 2px 16px; padding: 0; }
+  li { margin: 0 0 1px; }
+</style>
+</head>
+<body>
+<header>
+  <h1>Problem Statement: Case CR-26-047, Harbor &amp; Finch Freight</h1>
+  <div class="meta">Team <b>H4CK_077</b> &nbsp;|&nbsp; Approach: <b>Defense</b> &nbsp;|&nbsp; 19 November 2026 &nbsp;|&nbsp; E-numbers refer to the supplied evidence files</div>
+</header>
+
+<h2>The problem</h2>
+<div class="box"><p><b>Between 25 June and 3 September 2026, secret keys used by software at Harbor &amp; Finch were exposed in a support ticket and held by a vendor with no limits. They were used to read finance and bank-instruction data and to change a supplier's bank account without approval, five days before a payment run. Nothing joined these signals across the company's systems, so nobody saw it happen.</b></p></div>
+
+<h2>What happened</h2>
+<p>On 25 June a support lead let a customer paste their file-storage key (<b>bvk-7f3a</b>) into ticket TKT-48213. It stayed readable by every support agent, was never rotated, and could open every folder (E13, E04). On 11 August someone used TallyBridge's admin key for the support system (<b>tb-sync-svc</b>) to search tickets for words such as "password" and "bvk-", then opened that one ticket and nothing else (E02). Three days later the stolen storage key was used from new internet addresses to read the supplier bank-details file, the payment-run template and bank statements, 36 reads in all (E05). In the same days TallyBridge's finance key (<b>key-tb-07</b>) was used to copy two full supplier lists of about 9,800 records each (E01).</p>
+<p>From 17 to 19 August a computer on TallyBridge's private link to the company (<b>10.20.4.77</b>) used the finance key to search payments and read bank details each day (E01, E15). At 01:44 UTC on 3 September the same computer changed supplier V-0412's bank account from ****4417 to ****9083 with no approval reference (E18, E19). The 8 September payment run followed. TallyBridge had told the company it was a "precaution", that only ticket metadata was touched, that nothing involved the private link, and that the matter was closed (E12, E16). The company's own logs (E01, E05, E15) say otherwise.</p>
+<p><b>Why nobody noticed:</b> the keys had no address limit and no expiry (E04), secrets in tickets were a known and unfixed audit finding (E11), nobody watched exports or unusual key use (E10), a bank change needed no enforced approval (E19), and the vendor was trusted on its own answers (E07, E08).</p>
+
+<h2>What we know, infer and do not know</h2>
+<p><b>Know (seen in records):</b> the keys were used from places they normally are not; finance and file data were read; the bank change was made without approval. <b>Infer:</b> the two TallyBridge keys leaked from TallyBridge's side (E07, E15, E20), and one party is behind both the outside access and the build-computer access. <b>Do not know:</b> who the actor is, how those two keys were taken, and whether V-0412 was paid. <b>What would settle it:</b> TallyBridge's logs and the owner of 10.20.4.77, the payment-run list, and a call-back to the supplier.</p>
+
+<h2>Other explanations considered</h2>
+<p><b>The new contact-detail sync (E20-C):</b> ruled out; it changes contact fields from six other computers, not bank details. <b>Finance clean-up (E19, E13):</b> ruled out; Finance's bulk changes carry an approval reference and are not made through the API. <b>Staff on the same address range (E02, E03):</b> set aside; that range is a shared home-internet pool and does not identify anyone (E20-G). <b>The 9 July sandbox traffic from 10.20.4.77:</b> set aside; it matches announced maintenance (E20-B). <b>A former employee's login (E03, E14):</b> a real offboarding gap with no link to this chain. <b>Finance's V-0233 bank change with an out-of-order approval number (E19):</b> unresolved, kept separate.</p>
+
+<h2>The obvious approach, and why we are not taking it</h2>
+<p>The obvious fix is to rotate keys, add address allowlists and write rules for each system. It would not have stopped this: the decisive call used the right key from a private-link address inside the nightly sync window, so an allowlist that includes the vendor link lets it through and each system sees one ordinary call. A simple keyword scanner would also raise false alarms on staff searches such as "password reset" (E02).</p>
+
+<h2>Our solution (Defense)</h2>
+<ol>
+  <li><b>Learn normal:</b> for each key, learn its usual computers, actions and hours from a baseline frozen before the incident, after converting the different clocks and names to one standard.</li>
+  <li><b>Flag departures:</b> an unknown computer on the link, an action the key never performs (for example reading bank details), or secret searches and export-then-delete cycles by a software account.</li>
+  <li><b>Gate the money:</b> require an approval reference on every bank change, and hold a changed supplier for a call-back before the next payment run.</li>
+  <li><b>Check the vendor:</b> test each claim in a vendor notice against the company's own logs.</li>
+</ol>
+<p><b>How we will measure it:</b> correct detections, false alarms and misses on the supplied data and on altered copies (renumbered computers, shifted clocks, an attacker using a real sync computer), and proof that ordinary events are not flagged: the nightly sync, Tuesday exports, Finance's bulk update and remote staff. The working detector caught all 237 labelled attacker events with no false alarms among 41,616 others, and missed 60 network flows when the attacker used a real sync computer. Our labels are our own attribution, so this shows consistency, not proof it will work on unseen data.</p>
+
+<h2>What would change our conclusion</h2>
+<p>Vendor proof that 10.20.4.77 is a sanctioned computer, an approval record for V-0412, a call-back showing ****9083 is the real supplier's account, or logs showing the keys leaked from the company instead of TallyBridge.</p>
+
+<h2>Approach</h2>
+<p><b>Defense.</b> This choice is locked once submitted.</p>
+<div class="rec">Key records: E02 lines 6411, 19776-19822; E05 lines 6478-6551; E01 lines 28249-28272, 30454-31540; E15 line 8173; E18 lines 1079-1088; E19 line 313; E04 (key register); E16 (vendor notice).</div>
+</body>
+</html>

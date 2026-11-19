@@ -1,0 +1,16 @@
+const {load,count}=require('./lib.js');
+const E19=load('evidence/E19_vendor_master_change_log.csv'),E03=load('evidence/E03_sso_signin_log.csv'),E02=load('evidence/E02_helpdeskr_audit_log.csv');
+const E01=load('evidence/E01_ledgerone_api_access.csv');
+const f=E19.filter(r=>r.changed_by=='f.dsouza');
+console.log('Farah E19 source IPs',count(f,r=>r.source_ip));
+console.log('Farah E03 success IPs',count(E03.filter(r=>r.user=='f.dsouza'&&r.result=='success'),r=>r.source_ip).slice(0,6));
+console.log('Farah E01 IPs',count(E01.filter(r=>r.api_key_id=='user:f.dsouza'),r=>r.caller_ip).slice(0,6));
+console.log('E03 f.dsouza 19-21 Aug',E03.filter(r=>r.user=='f.dsouza'&&r.ts_utc>='2026-08-19'&&r.ts_utc<'2026-08-22').map(r=>r.ts_utc+' '+r.source_ip+' '+r.device_id+' '+r.auth_method));
+console.log('Who uses 172.16.8.31 and 172.16.8.11 (E03 users)',count(E03.filter(r=>r.source_ip=='172.16.8.31'),r=>r.user).slice(0,4),count(E03.filter(r=>r.source_ip=='172.16.8.11'),r=>r.user).slice(0,4));
+console.log('E19 rows from 172.16.8.31 by changed_by',count(E19.filter(r=>r.source_ip=='172.16.8.31'),r=>r.changed_by));
+console.log('E19 rows at exact :00 seconds',E19.filter(r=>/:00Z$/.test(r.ts_utc)).map(r=>r.ts_utc+' '+r.vendor_id+' '+r.field+' '+r.changed_by));
+console.log('Round-time bank rows only V-0233? E19 vendor-name non generic ->',E19.filter(r=>!/ Logistics Supply \d+$/.test(r.vendor_name)).map(r=>r.vendor_id+' '+r.vendor_name));
+console.log('f.dsouza in E01 on days of V-0233',E01.filter(r=>r.api_key_id=='user:f.dsouza'&&r.ts_utc.startsWith('2026-08-20')).length);
+console.log('20 Aug E01 user:f.dsouza any vendors PATCH?',E01.filter(r=>r.api_key_id=='user:f.dsouza'&&r.method!='GET').length);
+console.log('APR-1182 neighbours',E19.filter(r=>/APR-11(8|9)\d/.test(r.approval_ref)).map(r=>r.approval_ref+' '+r.ts_utc.slice(0,10)+' '+r.changed_by+' '+r.field));
+console.log('Payment run 23 Aug is after 20 Aug: yes');

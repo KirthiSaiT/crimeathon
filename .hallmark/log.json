@@ -1,0 +1,30 @@
+[
+ {
+  "scope": "app",
+  "shape": "app screen",
+  "theme": "brand (notion.com spec, look reference only)",
+  "axes": "light/grotesk-sans/chromatic-blue",
+  "hero": "none (app screen)",
+  "nav": "left sidebar, 8 destinations",
+  "footer": "none",
+  "imagery": "none",
+  "photos": [],
+  "entry": "app",
+  "fingerprint": "key-guard-v1",
+  "sections": [
+   "overview",
+   "alerts",
+   "keys",
+   "bank-gate",
+   "claims",
+   "timeline",
+   "scorecard",
+   "upload"
+  ],
+  "signature": "the incident timeline as a database table and the bank-change hold queue",
+  "waived": [],
+  "prompt": "Key Guard for CR-26-047, Notion-like design, shadcn",
+  "date": "2026-11-19",
+  "mode": "build"
+ }
+]

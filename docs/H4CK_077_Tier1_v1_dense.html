@@ -1,0 +1,86 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>H4CK_077 - Tier 1 Problem Statement - CR-26-047</title>
+<style>
+  @page { size: A4; margin: 7mm 9mm; }
+  * { box-sizing: border-box; }
+  body { font-family: Arial, Helvetica, sans-serif; font-size: 8.15pt; line-height: 1.24; color: #111; margin: 0; }
+  header { border-bottom: 1.5px solid #111; padding-bottom: 3px; margin-bottom: 3px; display: flex; justify-content: space-between; align-items: baseline; }
+  h1 { font-size: 12pt; margin: 0; }
+  .meta { font-size: 8.5pt; text-align: right; }
+  h2 { font-size: 8.8pt; margin: 5px 0 1px; text-transform: uppercase; letter-spacing: .3px; border-bottom: .5px solid #999; }
+  p { margin: 1px 0; }
+  ul { margin: 1px 0 1px 12px; padding: 0; }
+  li { margin: 0; }
+  b { font-weight: 700; }
+  .box { border: 1px solid #111; padding: 3px 5px; margin: 3px 0; background: #f2f2f2; }
+  table { border-collapse: collapse; width: 100%; margin: 2px 0; font-size: 7.7pt; }
+  td, th { border: .5px solid #888; padding: 1px 4px; vertical-align: top; text-align: left; }
+  th { background: #e6e6e6; }
+</style>
+</head>
+<body>
+<header>
+  <h1>Problem Statement &ndash; Case CR-26-047 (Tier 1)</h1>
+  <div class="meta"><b>Team: H4CK_077</b> &nbsp;|&nbsp; Approach: <b>DEFENSE</b> &nbsp;|&nbsp; 19 Nov 2026</div>
+</header>
+
+<h2>1. What we believe happened</h2>
+<p>Leaked machine keys were used to read H&amp;F's support, file and finance data and then to change a supplier's bank account. A BlueVault key (<b>bvk-7f3a</b>) was pasted into ticket <b>TKT-48213</b> on 25 Jun and never removed or rotated. An unknown actor then used TallyBridge's HelpDeskr admin key (<b>tb-sync-svc</b>) to search tickets for secrets and opened only that ticket. Three days later the BlueVault key was used from new addresses to read finance files. With TallyBridge's finance key (<b>key-tb-07</b>) the actor copied supplier data in August. From 17 Aug a host on TallyBridge's private link (<b>10.20.4.77</b>) searched payments and bank details. On 3 Sep it changed vendor V-0412's bank account with no approval reference, five days before the 8 Sep payment run. TallyBridge's notices understated all of this.</p>
+<table>
+  <tr><th>When (UTC)</th><th>What</th><th>Evidence</th></tr>
+  <tr><td>25 Jun 06:02</td><td>BlueVault key pasted into TKT-48213; "how we've always done it"</td><td>E13 l.16, E02 l.6411</td></tr>
+  <tr><td>9 Aug 03:12</td><td>key-tb-07 tested from 198.18.7.41 with retired client name 3.4.1</td><td>E01 l.27064-27077, E20-C</td></tr>
+  <tr><td>11 Aug 17:42-19:03</td><td>tb-sync-svc: 16 secret searches, reads only TKT-48213, 10 exports created, downloaded, deleted</td><td>E02 l.19776-19822</td></tr>
+  <tr><td>12 Aug 03:41</td><td>Two supplier exports (9,840 and 9,835 records) from key-tb-07</td><td>E01 l.28249-28272</td></tr>
+  <tr><td>14-16 Aug</td><td>bvk-7f3a reads 7 finance files 36 times (82.7 MB) from 198.18.7.23/.24/.77</td><td>E05 l.6478-6551</td></tr>
+  <tr><td>17-19 Aug ~12:10</td><td>10.20.4.77 (tb-build-02): payment searches, bank-detail reads, payments export</td><td>E01, E15 l.8173</td></tr>
+  <tr><td>3 Sep 01:44</td><td>V-0412 bank account changed, API, no approval_ref</td><td>E18 l.1088, E19 l.313</td></tr>
+</table>
+
+<h2>2. Key findings (evidence IDs)</h2>
+<ul>
+  <li><b>Keys were over-powerful and unreviewed:</b> E04 shows key-tb-07 (read/write all modules), tb-sync-svc (admin) and bvk-7f3a (all folders), all with no IP limit, no expiry; reviewed Jun 2024 / Feb 2025. E10 s2.1-2.3 require IP limits, 90-day expiry and minimum scope.</li>
+  <li><b>Secrets in tickets were known and unfixed:</b> E13, E10 s5.1-5.2, E11 finding 2 (High, Open), E09 R-025 and R-029 overdue.</li>
+  <li><b>The stolen key had no normal finance use:</b> E05 shows 995 normal reads from 172.16.9.40 and none in /finance; no staff account reads the two bank-instruction files.</li>
+  <li><b>The bank-details endpoint has no normal use:</b> only key-tb-07 ever calls it (E01, E18); the six sync nodes (.11-.16) never do.</li>
+  <li><b>Cost signal ignored:</b> E06 shows 13 export jobs by 24 Aug and 14 in August vs 4 in July, matching 10 attacker exports plus the weekly Tuesday export (E02).</li>
+  <li><b>Same-day probe:</b> three failed logins on the IT admin from 198.18.7.77 on 15 Aug (E03 l.22438-22440) while that address read finance files (E05).</li>
+  <li><b>Vendor account contradicted:</b> E16 ("no finance or files, nothing on the private link, rotated, closed") vs E01, E05, E15, E04; E12 went to the billing mailbox only; E17 omits .23/.24/.77 and 10.20.4.77, lists a python user agent absent from E01, and starts on 11 Aug although E01 shows activity on 9 Aug.</li>
+  <li><b>Approval control gap:</b> E19 has 4 bank changes with no approval_ref (3 UI by Finance staff, 1 API: V-0412). R-015 covers payment runs, not vendor-record changes (E09).</li>
+</ul>
+
+<h2>3. Uncertainty and what would resolve it</h2>
+<ul>
+  <li>How the actor got key-tb-07 and tb-sync-svc: we infer TallyBridge's side (E15, E07 audit gaps, E20-E forum posts) but it is not shown. <i>TallyBridge's vault and build-host logs.</i></li>
+  <li>Whether the outside actor (198.18.7.x, client 3.4.1, ~03:00 UTC) and the build-host actor (10.20.4.77, client 3.5.0, ~12:10 UTC) are one party: the link is shared keys and goal, not a log. <i>Logs of host tb-build-02; who owns 10.20.4.77.</i></li>
+  <li>Whether V-0412 is in the 8 Sep run and whose account ****9083 is. <i>Payment-run list and a call-back to the vendor.</i></li>
+  <li>BlueVault clock offset; two finance reads with a blank address (E05 l.6492, 6527); E15 host labels are vendor-supplied.</li>
+</ul>
+
+<h2>4. Alternative explanations considered</h2>
+<ul>
+  <li>Legitimate 3.6.0 contact sync (E20-C): <b>ruled out</b>; it changes contact fields from .11-.16, not bank details from .77.</li>
+  <li>Finance clean-up or audit (E19, E13): <b>ruled out</b>; bulk changes use IMPORT with a BULK ref and the UI, never the API; the 22 Jul export-and-delete and 31 Jul import were announced.</li>
+  <li>9 Jul sandbox traffic from .77: <b>set aside</b>; matches announced maintenance (E15, E20-B).</li>
+  <li>Staff on the same address range: <b>set aside</b>; 198.18.0.0/16 is a shared dynamic pool (E20-G), so an address does not identify a person.</li>
+  <li>Former employee R. Menon's kiosk login (E03, E14): a real offboarding gap, <b>no link</b> to this chain. Finance's V-0233 change with out-of-order APR-1182 (E19 l.243): <b>unresolved</b>, kept separate.</li>
+</ul>
+
+<h2>5. The problem we chose, and why</h2>
+<div class="box"><b>A leaked machine key can read finance data and change supplier bank details, and no control connects the signals across systems or stops the change before the payment run.</b></div>
+<p><b>What failed:</b> keys had no limits (E04); secrets sat in tickets (E13); nobody watched exports or off-profile use (E10 s4.1, E11 finding 6); bank changes needed no enforced approval (E19); the vendor was trusted on its own word (E07, E08). <b>Why this problem:</b> it is where money is lost, it is time-critical (a payment run 5 days after the change), and it can be tested on the supplied logs.</p>
+
+<h2>6. The obvious approach, and why we are not taking it</h2>
+<p><b>Obvious:</b> rotate keys, add IP allowlists, write per-system anomaly rules. <b>Not taken</b> because the decisive call used the right key and a private-link address inside the sync window (E18): an allowlist that includes 10.20.4.0/24 passes it, and per-system rules see one normal-looking call. A keyword scanner would also false-alarm on staff searches such as "password reset" and "api key request" (E02).</p>
+<p><b>Our idea:</b> (1) normalise the clocks (UTC, IST, epoch) and names (key-tb-07 = tb-sync-svc = host labels); (2) learn each key's normal hosts, endpoints and hours from a baseline frozen before the incident; (3) flag off-profile use, secret-search and export-delete cycles by integration accounts, and any call to the bank-details endpoint; (4) require a valid approval reference on every bank change and hold the supplier for call-back before the payment run; (5) check each vendor claim against our own logs.</p>
+
+<h2>7. What could change our conclusion</h2>
+<p>Vendor proof that 10.20.4.77 is a sanctioned node; an approval record for V-0412; a call-back showing ****9083 is the real vendor's account; logs showing the keys leaked from H&amp;F; or an unseen record linking the build host to normal vendor maintenance.</p>
+
+<h2>8. Selected approach and test plan</h2>
+<p><b>DEFENSE (locked).</b> We will report correct detections, false alarms and misses on the supplied data and on varied copies (renumbered hosts, shifted clocks, an attacker using a real sync node), and show that ordinary events are not flagged: nightly sync, 3.6.0 contact updates, Tuesday exports, Finance's bulk import, remote staff on shared addresses. <i>Preliminary:</i> a prototype caught all 203 labelled attacker events with 0 false alarms; with an attacker on a real sync node it still caught every API and HelpDesk event but missed 70 raw network flows. <i>Limits:</i> the labels are our own attribution, so results show consistency, not proof of generality; a baseline learned from tainted data degrades detection, so it must be frozen.</p>
+</body>
+</html>

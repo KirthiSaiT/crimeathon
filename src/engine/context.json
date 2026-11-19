@@ -1,0 +1,30 @@
+{
+  "events": [
+    { "when": "2026-06-25T05:41:00Z", "title": "Ticket TKT-48213 opened for a Pune customer who cannot pull delivery proofs", "system": "HelpDeskr", "kind": "leak", "evidence": [{ "file": "E02", "lines": "6395" }, { "file": "E13", "lines": "11:12 IST" }] },
+    { "when": "2026-06-25T06:02:00Z", "title": "Storage key bvk-7f3a pasted into the ticket and never removed", "system": "HelpDeskr", "kind": "leak", "evidence": [{ "file": "E02", "lines": "6411" }, { "file": "E13", "lines": "line 16" }] },
+    { "when": "2026-07-10T01:30:00Z", "title": "TallyBridge 3.5.0 goes live. The sync window moves to 01:30 UTC and 3.4.x is retired", "system": "Vendor", "kind": "context", "evidence": [{ "file": "E20-C", "lines": "release notes" }, { "file": "E13", "lines": "10 Jul" }] },
+    { "when": "2026-08-16T18:00:00Z", "title": "TallyBridge announces it is re-provisioning build host tb-build-02", "system": "Vendor", "kind": "context", "evidence": [{ "file": "E20-B", "lines": "status history" }] },
+    { "when": "2026-08-21T14:02:00Z", "title": "TallyBridge sends a vague precaution notice to the billing mailbox only", "system": "Vendor", "kind": "notice", "evidence": [{ "file": "E12", "lines": "email" }] },
+    { "when": "2026-08-24T08:35:00Z", "title": "HelpDeskr bills for extra export jobs. Finance asks for a line for the accounts", "system": "Company", "kind": "notice", "evidence": [{ "file": "E06", "lines": "alert and invoice" }] },
+    { "when": "2026-08-28T12:40:00Z", "title": "TallyBridge says ticket metadata only, nothing on the private link, closed", "system": "Vendor", "kind": "notice", "evidence": [{ "file": "E16", "lines": "email" }] },
+    { "when": "2026-09-01T01:30:00Z", "title": "Release 3.6.0 starts the legitimate contact-detail sync", "system": "Vendor", "kind": "context", "evidence": [{ "file": "E20-C", "lines": "3.6.0" }] },
+    { "when": "2026-09-08T00:00:00Z", "title": "Payment run, five days after the V-0412 change", "system": "Company", "kind": "context", "evidence": [{ "file": "Case file", "lines": "section 2" }] }
+  ],
+  "maintenance": [
+    { "system": "sandbox", "from": "2026-07-09T22:00:00Z", "to": "2026-07-09T23:00:00Z", "source": "E20-B status history" }
+  ],
+  "enrolled": [
+    { "actor": "key-tb-07", "sig": "PATCH /v2/vendors/V-x/contact", "from": "2026-09-01T00:00:00Z", "why": "Release 3.6.0 adds a contact-detail sync (E20-C)" }
+  ],
+  "attackerSources": ["198.18.7.", "10.20.4.77"],
+  "claims": [
+    { "id": "C-01", "source": "E16, 28 Aug", "claim": "Unauthorised requests were made on 11 and 12 August only.", "check": { "type": "only-dates", "from": "2026-08-11", "to": "2026-08-12" } },
+    { "id": "C-02", "source": "E16, 28 Aug", "claim": "The access was limited to support ticket metadata. No finance records or stored files were accessed.", "check": { "type": "no-system-access", "systems": ["LedgerOne", "BlueVault"] } },
+    { "id": "C-03", "source": "E16, 28 Aug", "claim": "All temporary export files created during the activity have been removed.", "check": { "type": "exports-removed" } },
+    { "id": "C-04", "source": "E16, 28 Aug", "claim": "The activity came entirely from outside. No systems inside our environment or on the private link were involved.", "check": { "type": "no-private-link" } },
+    { "id": "C-05", "source": "E16, 28 Aug", "claim": "Affected credentials were rotated on 24 August.", "check": { "type": "rotated", "actor": "key-tb-07", "date": "2026-08-24" } },
+    { "id": "C-06", "source": "E16, 28 Aug", "claim": "We consider this matter closed.", "check": { "type": "closed", "date": "2026-08-28" } },
+    { "id": "C-07", "source": "E12, 21 Aug", "claim": "There is no evidence that customer data was accessed in a way that affects business operations.", "check": { "type": "no-system-access", "systems": ["LedgerOne", "BlueVault"] } },
+    { "id": "C-08", "source": "E12, 21 Aug", "claim": "This notice went to the billing contact only.", "check": { "type": "document", "verdict": "true", "because": "The delivery note says no copy was sent to a security or IT contact.", "evidence": [{ "file": "E12", "lines": "delivery note" }] } }
+  ]
+}
