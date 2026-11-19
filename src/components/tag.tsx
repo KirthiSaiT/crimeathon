@@ -2,23 +2,24 @@ import { cn } from "@/lib/utils";
 
 export type TagColor = "red" | "orange" | "yellow" | "green" | "teal" | "blue" | "purple" | "pink" | "gray";
 
+// Verdict colours only: red = misuse, amber = needs a decision, green = ordinary, blue = the product's accent.
 const colors: Record<TagColor, string> = {
-  red: "bg-tag-red-bg text-tag-red-ink",
-  orange: "bg-tag-orange-bg text-tag-orange-ink",
-  yellow: "bg-tag-yellow-bg text-tag-yellow-ink",
-  green: "bg-tag-green-bg text-tag-green-ink",
-  teal: "bg-tag-teal-bg text-tag-teal-ink",
-  blue: "bg-tag-blue-bg text-tag-blue-ink",
-  purple: "bg-tag-purple-bg text-tag-purple-ink",
-  pink: "bg-tag-pink-bg text-tag-pink-ink",
-  gray: "bg-tag-gray-bg text-tag-gray-ink",
+  red: "border-[var(--tp)]/40 bg-[var(--tp)]/12 text-[var(--tp)]",
+  orange: "border-[var(--sev-high)]/40 bg-[var(--sev-high)]/12 text-[var(--sev-high)]",
+  yellow: "border-[var(--nr)]/45 bg-[var(--nr)]/14 text-[var(--nr)]",
+  green: "border-[var(--fp)]/40 bg-[var(--fp)]/12 text-[var(--fp)]",
+  teal: "border-[var(--info)]/40 bg-[var(--info)]/12 text-[var(--info)]",
+  blue: "border-[var(--accent)]/40 bg-[var(--accent)]/12 text-[var(--accent)]",
+  purple: "border-[var(--info)]/40 bg-[var(--info)]/12 text-[var(--info)]",
+  pink: "border-[var(--tp)]/40 bg-[var(--tp)]/12 text-[var(--tp)]",
+  gray: "border-[var(--line-strong)] bg-transparent text-[var(--ink-secondary)]",
 };
 
 export function Tag({ color = "gray", mono = false, className, children }: { color?: TagColor; mono?: boolean; className?: string; children: React.ReactNode }) {
   return (
     <span
       className={cn(
-        "inline-flex h-5 items-center rounded-sm px-1.5 text-xs font-medium whitespace-nowrap",
+        "inline-flex items-center gap-1.5 rounded-full border px-2.5 py-0.5 text-[0.7rem] font-semibold tracking-[0.01em] whitespace-nowrap transition-colors",
         mono && "font-mono font-normal",
         colors[color],
         className,

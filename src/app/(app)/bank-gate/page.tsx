@@ -17,7 +17,7 @@ import type { BankChange, BankStatus } from "@/lib/types";
 
 const statusLabel: Record<BankStatus, string> = { approved: "Approved", missing: "No approval", bulk: "Bulk import", "out-of-sequence": "Out of sequence" };
 const statusColor: Record<BankStatus, TagColor> = { approved: "green", missing: "red", bulk: "blue", "out-of-sequence": "orange" };
-const STORAGE_KEY = "key-guard-released";
+const STORAGE_KEY = "warden-released";
 
 const releaseListeners = new Set<() => void>();
 const subscribeReleased = (cb: () => void) => {
@@ -120,7 +120,7 @@ function BankGateView() {
         ) : null}
         {!canRelease ? (
           <Callout icon={Lock}>
-            <p>Only an approver can release a hold. Switch your role in the sidebar to try it.</p>
+            <p>Only an approver can release a hold. Switch your role in the top bar to try it.</p>
           </Callout>
         ) : null}
       </Section>

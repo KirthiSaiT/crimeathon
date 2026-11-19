@@ -1,4 +1,4 @@
--- Key Guard: storage for saved analyses and released holds, with role-based access.
+-- Warden: storage for saved analyses and released holds, with role-based access.
 -- Written for Supabase (Postgres + Auth). Not yet applied to a live project.
 
 create table public.profiles (

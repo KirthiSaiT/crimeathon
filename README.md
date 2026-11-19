@@ -1,8 +1,8 @@
-# Key Guard
+# Warden
 
 Case CR-26-047 (Harbor & Finch Freight), team H4CK_077, **Defense**.
 
-Key Guard reads the company's logs, learns what is normal for every machine key, flags the moments a key steps outside its pattern, checks every supplier bank change for an approval reference, and tests the vendor's claims against the company's own logs. It runs only on the supplied evidence. Everything is fictional and synthetic.
+Warden reads the company's logs, learns what is normal for every machine key, flags the moments a key steps outside its pattern, checks every supplier bank change for an approval reference, and tests the vendor's claims against the company's own logs. It runs only on the supplied evidence. Everything is fictional and synthetic.
 
 > A leaked machine key can read finance data and change supplier bank details, and no control connects the signals across systems or stops the change before the payment run.
 
@@ -73,7 +73,7 @@ The detector also holds the two suspicious bank changes (V-0412, no approval, E1
 - **The baseline must be frozen.** Learned from all data, it degrades sharply (last row above).
 - **Shared home-internet addresses** (198.18.0.0/16) identify nobody, so the detector does not flag on an address range.
 - **Document facts are configured, not read.** `context.json` carries the maintenance window, the 3.6.0 enrolment and the claims, because they come from PDFs.
-- **Rotation, expiry and access scope are recommended, not carried out.** Key Guard scores and ranks; it does not change a key.
+- **Rotation, expiry and access scope are recommended, not carried out.** Warden scores and ranks; it does not change a key.
 - **Who did it is unknown.** Nothing in the evidence names a person.
 
 ## Supabase

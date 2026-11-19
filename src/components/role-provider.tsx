@@ -9,7 +9,7 @@ interface RoleContextValue {
 }
 
 const RoleContext = createContext<RoleContextValue>({ role: "analyst", setRole: () => {} });
-const STORAGE_KEY = "key-guard-role";
+const STORAGE_KEY = "warden-role";
 const listeners = new Set<() => void>();
 
 function readRole(): Role {
