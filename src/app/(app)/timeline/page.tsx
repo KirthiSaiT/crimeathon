@@ -18,7 +18,7 @@ function TimelineView() {
   const rows = useMemo(() => (state.status === "ready" ? state.data.filter((e) => phase === "all" || e.kind === phase) : []), [state, phase]);
 
   return (
-    <PageShell icon={History} title="Timeline" lead="One timeline across five systems, with the clocks converted to UTC. HelpDeskr logs India time and BlueVault logs a clock that was never synchronised.">
+    <PageShell icon={History} title="Timeline" lead="One timeline across every system loaded, with the clocks converted to UTC. HelpDeskr logs local time and BlueVault can log a clock that was never synchronised, so every time here is shown on one clock.">
       <div className="flex flex-col gap-3">
         <Select value={phase} onValueChange={(v) => setPhase(String(v))} items={phaseItems}>
           <SelectTrigger aria-label="Filter by phase" className="w-40">

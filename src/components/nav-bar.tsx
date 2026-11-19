@@ -5,6 +5,7 @@ import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { CalendarClock, ChartColumn, ClipboardList, FileText, ShieldCheck, Vault, FlaskConical, History, KeyRound, Landmark, Menu, Moon, Scale, Sun, TriangleAlert, Upload, X } from "lucide-react";
 import { useTheme } from "@/hooks/use-theme";
+import { useAnalysis } from "@/components/analysis-provider";
 import { roleLabel, useAuth } from "@/components/role-provider";
 import { cn } from "@/lib/utils";
 import { APP_NAME } from "@/lib/brand";
@@ -97,10 +98,12 @@ function Controls() {
 }
 
 function Wordmark() {
+  const { state } = useAnalysis();
+  const caseId = state.status === "ready" ? state.data.caseInfo?.id : null;
   return (
     <Link href="/" className="flex flex-col leading-tight">
       <span className="text-lg font-bold tracking-[var(--track-display)]">{APP_NAME}</span>
-      <span className="font-mono text-xs text-[var(--ink-tertiary)]">CR-26-047, H4CK_077</span>
+      <span className="font-mono text-xs text-[var(--ink-tertiary)]">{caseId ?? "No case loaded"}</span>
     </Link>
   );
 }

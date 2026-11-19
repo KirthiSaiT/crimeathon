@@ -6,7 +6,7 @@ import { PageShell } from "@/components/page-shell";
 import { Tag, type TagColor } from "@/components/tag";
 import { EvidenceTags } from "@/components/evidence-tags";
 import { Db, DbBody, DbCell, DbHead, DbHeader, DbRow, td, th } from "@/components/db";
-import { ErrorState, PageSkeleton, TableSkeleton } from "@/components/states";
+import { EmptyState, ErrorState, PageSkeleton, TableSkeleton } from "@/components/states";
 import { useSlice } from "@/components/analysis-provider";
 import type { Verdict } from "@/lib/types";
 
@@ -19,11 +19,14 @@ function ClaimsView() {
     <PageShell
       icon={Scale}
       title="Vendor claims"
-      lead="Each statement in TallyBridge's two notices, tested against the company's own logs. A notice says what its author wanted to say; a log says what a system recorded."
+      lead="Each statement in the vendor's notices, tested against the company's own logs. A notice says what its author wanted to say; a log says what a system recorded."
     >
       {state.status === "loading" ? <TableSkeleton rows={8} /> : null}
       {state.status === "error" ? <ErrorState what="vendor claims" message={state.message} onRetry={retry} /> : null}
-      {state.status === "ready" ? (
+      {state.status === "ready" && state.data.length === 0 ? (
+        <EmptyState title="No vendor claims loaded." body="Claims come from the vendor's notices, which are documents. Upload a case-facts file with the claims to test them against the logs." />
+      ) : null}
+      {state.status === "ready" && state.data.length > 0 ? (
         <div className="overflow-x-auto">
           <Db className="min-w-[52rem]">
             <DbHeader>

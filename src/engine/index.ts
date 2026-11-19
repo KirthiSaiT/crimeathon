@@ -2,7 +2,7 @@ import type { Alert, TimelineEvent } from "../lib/types";
 import { buildBaseline } from "./baseline";
 import { checkBank } from "./bank";
 import { verifyClaims } from "./claims";
-import contextJson from "./context.json";
+import { emptyContext, parseFacts } from "./facts";
 import { detect } from "./detect";
 import { buildScorecard, labelAttackers } from "./evaluate";
 import { simulate } from "./simulate";
@@ -12,7 +12,9 @@ import { sortEvents } from "./loaders";
 import type { Analysis, Context, Options, Parsed } from "./types";
 import { defaultOptions } from "./types";
 
-export const defaultContext = contextJson as unknown as Context;
+// No case facts by default: the detector knows only what the logs say, until facts are supplied.
+export const defaultContext: Context = emptyContext;
+export { emptyContext, parseFacts };
 export { addFile, emptyParsed, detectKind } from "./loaders";
 export { defaultOptions } from "./types";
 export type { Analysis, Parsed, Options, Context } from "./types";
@@ -22,10 +24,13 @@ const iso = (ts: number) => new Date(ts).toISOString().replace(".000Z", "Z");
 function phase(a: Alert): TimelineEvent["kind"] {
   // Items that need a human look are not part of the attack path: they stay in the full timeline as context.
   if (a.status === "review") return "context";
-  return /bank account|bank details/i.test(a.title) || a.source.includes("10.20.4.") ? "attack" : "theft";
+  return /bank account|bank details/i.test(a.title) ? "attack" : "theft";
 }
 
-export function analyze(input: Parsed, ctx: Context = defaultContext, options: Partial<Options> = {}, measureAccuracy = true): Analysis {
+// Accuracy and the simulation are measured only when there are attacker labels to measure against.
+export function analyze(input: Parsed, given: Context = defaultContext, options: Partial<Options> = {}, measure?: boolean): Analysis {
+  const ctx = input.context ?? given;
+  const measureAccuracy = measure ?? ctx.attackerSources.length > 0;
   const opt: Options = { ...defaultOptions, ...options };
   const parsed = sortEvents({ ...input, events: [...input.events], changes: [...input.changes] });
 
@@ -52,6 +57,7 @@ export function analyze(input: Parsed, ctx: Context = defaultContext, options: P
     .map((e, i) => ({ ...e, id: `T-${String(i + 1).padStart(2, "0")}` }));
 
   const flagged = [...findings.values()].filter((f) => !f.ordinary).length;
+  const stamps = [...parsed.events.map((e) => e.ts), ...parsed.changes.map((c) => c.ts)];
   return {
     alerts,
     timeline,
@@ -62,6 +68,18 @@ export function analyze(input: Parsed, ctx: Context = defaultContext, options: P
     baseline: baseline.summary,
     simulation: measureAccuracy ? simulate(parsed.events, findings, baseline, labelAttackers(parsed.events, ctx), bankResult.bank, ctx) : null,
     files: parsed.files,
-    stats: { events: parsed.events.length, flagged, ordinary: findings.size - flagged, cutoff: iso(baseline.cutoff), labelled: measureAccuracy },
+    caseInfo: ctx.case ?? null,
+    paymentRunDays: ctx.paymentRunDays ?? [],
+    stats: {
+      events: parsed.events.length,
+      flagged,
+      ordinary: findings.size - flagged,
+      cutoff: iso(baseline.cutoff),
+      labelled: measureAccuracy,
+      from: stamps.length ? iso(Math.min(...stamps)) : null,
+      to: stamps.length ? iso(Math.max(...stamps)) : null,
+      registerExported: parsed.register?.exported ?? null,
+      source: parsed.files.length === 0 ? "empty" : "upload",
+    },
   };
 }

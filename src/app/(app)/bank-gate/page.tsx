@@ -13,7 +13,7 @@ import { Tabs, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { useAuth } from "@/components/role-provider";
 import { useHoldReleases, useHoldRequests, useSettings } from "@/lib/supabase/data";
 import { useSlice } from "@/components/analysis-provider";
-import { fmtTime } from "@/lib/format";
+import { fmtDate, fmtTime } from "@/lib/format";
 import { useQueryState } from "@/lib/use-query-state";
 import type { BankChange, BankStatus } from "@/lib/types";
 
@@ -67,7 +67,7 @@ function BankGateView() {
       title="Bank gate"
       lead="Every supplier bank change, checked for an approval reference. Changes that fail are held for a call-back before the next payment run."
     >
-      <Section title="Held for call-back" note="Payments run on the 8th and 23rd. Phone the supplier on a number you already trust.">
+      <Section title="Held for call-back" note="Phone the supplier on a number you already trust, from the contract and not from the change request.">
         {state.status === "loading" ? <TableSkeleton rows={2} /> : null}
         {state.status === "error" ? <ErrorState what="bank changes" message={state.message} onRetry={retry} /> : null}
         {state.status === "ready" && held.length === 0 ? <EmptyState title="Nothing is held." body="Every bank change has an approval reference in sequence." /> : null}
@@ -143,7 +143,7 @@ function BankGateView() {
         ) : null}
       </Section>
 
-      <Section title="All bank changes" note="40 changes from 3 Jun to 3 Sep, read from the vendor change log (E19).">
+      <Section title="All bank changes" note={changes.length ? `${changes.length} bank ${changes.length === 1 ? "change" : "changes"} from ${fmtDate(changes[changes.length - 1].time)} to ${fmtDate(changes[0].time)}, read from the vendor change log.` : "No vendor change log loaded."}>
         <Tabs value={view} onValueChange={(v) => setView(String(v))}>
           <TabsList variant="line">
             <TabsTrigger value="held">Held {state.status === "ready" ? held.length : ""}</TabsTrigger>

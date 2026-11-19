@@ -1,11 +1,15 @@
 // Command-line run: npm run analyze [evidence folder] [--json]
-import { analyze } from "../src/engine";
+import { readFileSync } from "node:fs";
+import { analyze, parseFacts } from "../src/engine";
 import { loadEvidenceDir } from "../src/engine/node";
 
-const dir = process.argv.find((a, i) => i > 1 && !a.startsWith("--")) ?? "evidence";
+// npm run analyze -- <folder> [--case facts.json] [--json]. Without --case the detector knows only what the logs say.
+const caseAt = process.argv.indexOf("--case");
+const facts = caseAt > 0 ? parseFacts(JSON.parse(readFileSync(process.argv[caseAt + 1], "utf8"))) : null;
+const dir = process.argv.find((a, i) => i > 1 && !a.startsWith("--") && process.argv[i - 1] !== "--case") ?? "evidence";
 const t0 = Date.now();
 const parsed = loadEvidenceDir(dir);
-const result = analyze(parsed);
+const result = analyze(parsed, facts ?? undefined);
 if (process.argv.includes("--json")) {
   console.log(JSON.stringify(result, null, 1));
 } else {

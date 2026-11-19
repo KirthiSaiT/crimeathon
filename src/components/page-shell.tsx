@@ -1,6 +1,30 @@
-import type { LucideIcon } from "lucide-react";
+"use client";
+
+import Link from "next/link";
+import { usePathname } from "next/navigation";
+import { FileUp, type LucideIcon } from "lucide-react";
 import { AccountActions } from "@/components/account-actions";
+import { useAnalysis } from "@/components/analysis-provider";
+import { buttonVariants } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
+
+// The pages that read the detector's output. With nothing uploaded they show one clear state instead of empty tables.
+const CASE_PAGES = ["/overview", "/alerts", "/keys", "/bank-gate", "/payment-run", "/claims", "/timeline", "/scorecard", "/simulation"];
+
+function NoLogs() {
+  return (
+    <div className="flex max-w-2xl flex-col items-start gap-3 border border-dashed border-[var(--line-strong)] bg-[var(--bg-elevated)] p-6">
+      <FileUp className="size-5 text-[var(--ink-tertiary)]" aria-hidden="true" />
+      <div>
+        <p className="font-medium">No logs loaded yet.</p>
+        <p className="mt-1 text-sm text-[var(--ink-secondary)]">Warden starts empty. Upload one or more logs, and every page fills from what the logs say and nothing else.</p>
+      </div>
+      <Link href="/upload" className={buttonVariants({ variant: "default" })}>
+        Upload logs
+      </Link>
+    </div>
+  );
+}
 
 // icon and aurora are accepted so every screen keeps its call as written; the Terrazzo shell draws neither.
 export function PageShell({
@@ -16,6 +40,9 @@ export function PageShell({
   actions?: React.ReactNode;
   children: React.ReactNode;
 }) {
+  const { state } = useAnalysis();
+  const pathname = usePathname();
+  const nothingLoaded = CASE_PAGES.includes(pathname) && state.status === "ready" && state.data.files.length === 0;
   return (
     <div className="mx-auto w-full max-w-(--page-width) min-w-0 px-(--gutter) pt-10 pb-24">
       <header className="flex flex-wrap items-start justify-between gap-x-6 gap-y-4 border-b-2 border-[var(--ink)] pb-6">
@@ -25,7 +52,7 @@ export function PageShell({
         </div>
         <div className="ml-auto shrink-0">{actions ?? <AccountActions />}</div>
       </header>
-      <div className="mt-8 flex min-w-0 flex-col gap-12">{children}</div>
+      <div className="mt-8 flex min-w-0 flex-col gap-12">{nothingLoaded ? <NoLogs /> : children}</div>
     </div>
   );
 }

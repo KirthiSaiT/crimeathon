@@ -10,7 +10,7 @@ import { EmptyState, ErrorState, PageSkeleton, TableSkeleton } from "@/component
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from "@/components/ui/dialog";
-import { useSlice } from "@/components/analysis-provider";
+import { useAnalysis, useSlice } from "@/components/analysis-provider";
 import { useAuth } from "@/components/role-provider";
 import { useHoldReleases, useSettings } from "@/lib/supabase/data";
 import { usePendingChanges, type PendingChange } from "@/lib/supabase/vault";
@@ -19,22 +19,26 @@ import type { BankChange } from "@/lib/types";
 
 const DAY = 86_400_000;
 
-// Payments run on the 8th and the 23rd. Given a moment, the run before it and the run after it.
-function runsAround(ts: number) {
+// Given the days of the month payments run on, the run before a moment and the run after it.
+function runsAround(ts: number, days: number[]) {
   const d = new Date(ts);
   const y = d.getUTCFullYear();
   const m = d.getUTCMonth();
-  const day = d.getUTCDate();
-  const at = (yy: number, mm: number, dd: number) => Date.UTC(yy, mm, dd);
-  if (day < 8) return { last: at(y, m - 1, 23), next: at(y, m, 8) };
-  if (day < 23) return { last: at(y, m, 8), next: at(y, m, 23) };
-  return { last: at(y, m, 23), next: at(y, m + 1, 8) };
+  const today = Date.UTC(y, m, d.getUTCDate());
+  const runs: number[] = [];
+  for (const offset of [-1, 0, 1, 2]) for (const day of days) runs.push(Date.UTC(y, m + offset, day));
+  runs.sort((x, y2) => x - y2);
+  const last = [...runs].reverse().find((r) => r <= today);
+  const next = runs.find((r) => r > today);
+  return last !== undefined && next !== undefined ? { last, next } : null;
 }
 
 const pendingColor: Record<PendingChange["status"], TagColor> = { held: "red", released: "green", rejected: "gray" };
 
 function PaymentRunView() {
   const { state, retry } = useSlice((a) => a.bank);
+  const { state: whole } = useAnalysis();
+  const runDays = whole.status === "ready" ? whole.data.paymentRunDays : [];
   const { status: authStatus, can, user, configured } = useAuth();
   const { released } = useHoldReleases();
   const { twoPersonRule } = useSettings();
@@ -46,10 +50,10 @@ function PaymentRunView() {
 
   const changes: BankChange[] = useMemo(() => (state.status === "ready" ? state.data : []), [state]);
   const end = useMemo(() => (changes.length ? Math.max(...changes.map((c) => Date.parse(c.time))) : 0), [changes]);
-  const { last, next } = runsAround(end);
+  const runs = end && runDays.length ? runsAround(end, runDays) : null;
   const blocked = changes.filter((c) => c.hold && !released.includes(c.id));
-  const payable = changes.filter((c) => Date.parse(c.time) > last && (!c.hold || released.includes(c.id)));
-  const daysToRun = Math.round(((next - end) / DAY) * 10) / 10;
+  const payable = runs ? changes.filter((c) => Date.parse(c.time) > runs.last && (!c.hold || released.includes(c.id))) : [];
+  const daysToRun = runs ? Math.round(((runs.next - end) / DAY) * 10) / 10 : 0;
 
   const close = () => {
     setDialog(null);
@@ -78,9 +82,9 @@ function PaymentRunView() {
         <dl className="ledger">
           <div className="grid grid-cols-2 gap-px bg-[var(--line)] min-[60rem]:grid-cols-4">
             {[
-              { label: "Next payment run", value: fmtDate(new Date(next).toISOString()), note: `${daysToRun} days after the records end` },
+              ...(runs ? [{ label: "Next payment run", value: fmtDate(new Date(runs.next).toISOString()), note: `${daysToRun} days after the records end` }] : []),
               { label: "Blocked until released", value: String(blocked.length), note: "held bank changes" },
-              { label: "Payable this run", value: String(payable.length), note: "changed since the last run, and sound" },
+              ...(runs ? [{ label: "Payable this run", value: String(payable.length), note: "changed since the last run, and sound" }] : []),
               { label: "Held by the vault", value: String((pending.rows ?? []).filter((r) => r.status === "held").length), note: "asked for by a key" },
             ].map((k) => (
               <div key={k.label} className="flex flex-col-reverse justify-end gap-1 bg-[var(--bg-elevated)] px-4 py-4">
@@ -124,44 +128,48 @@ function PaymentRunView() {
         </Link>
       </Section>
 
-      <Section title="Payable this run" note="Bank changes since the last run that passed every check, plus holds that have been released.">
-        {state.status === "loading" ? <TableSkeleton rows={3} /> : null}
-        {state.status === "ready" && payable.length === 0 ? <EmptyState title="No bank changes since the last run." body="Nothing new needs to be checked before the next run." /> : null}
-        {payable.length > 0 ? (
-          <div className="overflow-x-auto">
-            <Db className="min-w-[44rem]">
-              <DbHeader>
-                <DbRow className="hover:bg-transparent">
-                  <DbHead className={th}>Supplier</DbHead>
-                  <DbHead className={th}>Account change</DbHead>
-                  <DbHead className={th}>Changed by</DbHead>
-                  <DbHead className={th}>When (UTC)</DbHead>
-                  <DbHead className={th}>Why it is payable</DbHead>
-                </DbRow>
-              </DbHeader>
-              <DbBody>
-                {payable.map((c) => (
-                  <DbRow key={c.id} className="hover:bg-[var(--bg-subtle)]">
-                    <DbCell className={`${td} whitespace-normal`}>
-                      <span className="font-medium">{c.vendor}</span>
-                      <span className="block font-mono text-[var(--ink-tertiary)]">{c.vendorId}</span>
-                    </DbCell>
-                    <DbCell className={`${td} font-mono whitespace-nowrap`}>
-                      {c.oldValue} to {c.newValue}
-                    </DbCell>
-                    <DbCell className={`${td} font-mono`}>{c.changedBy}</DbCell>
-                    <DbCell className={`${td} num whitespace-nowrap text-[var(--ink-tertiary)]`}>{fmtTime(c.time)}</DbCell>
-                    <DbCell className={`${td} whitespace-normal`}>
-                      {released.includes(c.id) ? <Tag color="green">Released after a call-back</Tag> : c.status === "bulk" ? <Tag color="blue">Bulk import with a reference</Tag> : <Tag color="green">Approved</Tag>}
-                      {c.contactChangedDays !== undefined ? <Tag color="yellow">Contact changed {c.contactChangedDays} days earlier</Tag> : null}
-                    </DbCell>
+      {runs ? (
+        <Section title="Payable this run" note="Bank changes since the last run that passed every check, plus holds that have been released.">
+          {state.status === "loading" ? <TableSkeleton rows={3} /> : null}
+          {state.status === "ready" && payable.length === 0 ? <EmptyState title="No bank changes since the last run." body="Nothing new needs to be checked before the next run." /> : null}
+          {payable.length > 0 ? (
+            <div className="overflow-x-auto">
+              <Db className="min-w-[44rem]">
+                <DbHeader>
+                  <DbRow className="hover:bg-transparent">
+                    <DbHead className={th}>Supplier</DbHead>
+                    <DbHead className={th}>Account change</DbHead>
+                    <DbHead className={th}>Changed by</DbHead>
+                    <DbHead className={th}>When (UTC)</DbHead>
+                    <DbHead className={th}>Why it is payable</DbHead>
                   </DbRow>
-                ))}
-              </DbBody>
-            </Db>
-          </div>
-        ) : null}
-      </Section>
+                </DbHeader>
+                <DbBody>
+                  {payable.map((c) => (
+                    <DbRow key={c.id} className="hover:bg-[var(--bg-subtle)]">
+                      <DbCell className={`${td} whitespace-normal`}>
+                        <span className="font-medium">{c.vendor}</span>
+                        <span className="block font-mono text-[var(--ink-tertiary)]">{c.vendorId}</span>
+                      </DbCell>
+                      <DbCell className={`${td} font-mono whitespace-nowrap`}>
+                        {c.oldValue} to {c.newValue}
+                      </DbCell>
+                      <DbCell className={`${td} font-mono`}>{c.changedBy}</DbCell>
+                      <DbCell className={`${td} num whitespace-nowrap text-[var(--ink-tertiary)]`}>{fmtTime(c.time)}</DbCell>
+                      <DbCell className={`${td} whitespace-normal`}>
+                        {released.includes(c.id) ? <Tag color="green">Released after a call-back</Tag> : c.status === "bulk" ? <Tag color="blue">Bulk import with a reference</Tag> : <Tag color="green">Approved</Tag>}
+                        {c.contactChangedDays !== undefined ? <Tag color="yellow">Contact changed {c.contactChangedDays} days earlier</Tag> : null}
+                      </DbCell>
+                    </DbRow>
+                  ))}
+                </DbBody>
+              </Db>
+            </div>
+          ) : null}
+        </Section>
+      ) : (
+        <p className="text-sm text-[var(--ink-tertiary)]">Payment run days are not set, so Warden cannot say what the next run will pay. They come from the case facts.</p>
+      )}
 
       <Section title="Held by the vault" note="In the simulated LedgerOne a key can ask for a bank change but never makes one. The change waits here until one person asks for its release and a different person approves it.">
         {authStatus !== "signed-in" ? (

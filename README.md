@@ -15,19 +15,29 @@ npm install --legacy-peer-deps
 npm run dev
 ```
 
-Open http://localhost:3000. The app reads the evidence files in `./evidence` (the 20 supplied items) and runs the detector on them. To use another folder, set `EVIDENCE_DIR` (see `.env.example`).
+Open http://localhost:3000. **The app starts empty.** Nothing is preloaded: open **Upload logs**, choose logs from the `evidence/` folder (or any logs with the same columns), and every page fills from what you uploaded and nothing else. To make the server read the supplied evidence by itself instead, set `LOAD_SUPPLIED_EVIDENCE=true` (see `.env.example`).
 
 | Command | What it does |
 |---|---|
-| `npm run dev` | The web app with live results |
-| `npm run analyze` | The same detector on the command line. `npm run analyze -- <folder>` for another folder, `-- --json` for the full result |
-| `npm test` | 32 tests on the supplied logs, altered copies, uploads, the simulation and the bank rules |
+| `npm run dev` | The web app, empty until you upload logs |
+| `npm run analyze` | The same detector on the command line, with the case facts in `case-pack/`. `npm run analyze -- <folder>` for another folder, `-- --json` for the full result. Call `npx tsx scripts/analyze.ts` with no `--case` to see what the logs say with no case facts |
+| `npm test` | 38 tests on the supplied logs, altered copies, uploads, the simulation, the bank rules and the empty start |
 | `npm run simulate` | Replay the attack through the defense: when each layer fires, how fast the response must be, which single controls would have stopped the bank change. See `docs/Solution_Defense.md` |
 | `npm run typecheck` | TypeScript check |
 
-### Running it on logs you have not seen
+### What to upload
 
-Either open **Upload logs** in the app, pick the CSV files and press *Run the detector*, or point `EVIDENCE_DIR` at a folder. A log is recognised by its **columns**, not its file name, so a renamed or re-exported file still loads. Logs you do not supply fall back to the supplied evidence. Accuracy figures are shown only for the supplied evidence, because the attacker labels are ours and do not apply to new data. The whole app (alerts, keys, bank gate, claims, timeline, scorecard) updates to your logs.
+A file is recognised by **what is inside it**, not by its name, so a renamed or re-exported file still loads.
+
+| File | What it gives the app |
+|---|---|
+| A log (LedgerOne, HelpDeskr, sign-ins, BlueVault, the private link, the vendor change log) | Alerts, bank holds, the timeline, what each key normally does |
+| The connected software register (`.json` with an `integrations` list) | Every key scored against policy, with narrow-scope advice once logs are loaded too |
+| A **case-facts** file (`.json`, see `case-pack/CR-26-047.json`) | The things logs cannot say: announced maintenance, a release that added an action, the vendor's claims, the attacker address ranges, the payment-run days |
+
+Without case facts the detector knows only what the logs say. It then flags the 3.6.0 contact sync and the announced maintenance traffic, because nothing tells it they are ordinary. It shows no vendor claims, and it cannot score its own accuracy, because that needs the attacker address ranges. With the `case-pack` file added it reproduces the full result (23 alert groups, 237 of 237 attacker events caught, 8 vendor claims tested). The logs alone are enough for the bank gate: the two suspicious bank changes are held either way.
+
+Each run replaces the last one. Results are kept in the browser tab, so a reload keeps them and **Clear and start again** (on the Upload page) empties them. Nothing is stored on the server.
 
 ## How it works
 

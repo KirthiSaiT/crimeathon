@@ -157,7 +157,7 @@ export function useRuns() {
       const sb = getSupabase();
       if (!sb) return "The database is not configured.";
       const { error } = await sb.from("analysis_runs").insert({
-        source: analysis.stats.labelled ? "supplied" : "upload",
+        source: analysis.stats.source === "supplied" ? "supplied" : "upload",
         label: label || null,
         stats: analysis.stats,
         files: analysis.files,

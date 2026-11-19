@@ -45,7 +45,7 @@ export interface Register {
 export interface FileInfo {
   name: string;
   id: string;
-  kind: Kind | "register";
+  kind: Kind | "register" | "facts";
   rows: number;
 }
 
@@ -54,6 +54,8 @@ export interface Parsed {
   changes: ChangeRow[];
   register: Register | null;
   files: FileInfo[];
+  // Case facts that came with the upload (a case-facts file), if any.
+  context?: Context;
 }
 
 export interface Options {
@@ -122,6 +124,9 @@ export interface Context {
   enrolled: { actor: string; sig: string; from: string; why: string }[];
   attackerSources: string[];
   claims: ClaimDef[];
+  // Optional facts about the case itself.
+  case?: { id: string; name: string; approach?: string };
+  paymentRunDays?: number[];
 }
 
 export interface ClaimDef {
@@ -143,5 +148,20 @@ export interface Analysis {
   baseline: BaselineActor[];
   files: FileInfo[];
   simulation: Simulation | null;
-  stats: { events: number; flagged: number; ordinary: number; cutoff: string; labelled: boolean };
+  caseInfo: Context["case"] | null;
+  paymentRunDays: number[];
+  stats: {
+    events: number;
+    flagged: number;
+    ordinary: number;
+    cutoff: string;
+    labelled: boolean;
+    // The span the logs cover, when they have any rows.
+    from: string | null;
+    to: string | null;
+    // When the key register was exported, if one was loaded.
+    registerExported: string | null;
+    // Where the result came from: nothing loaded, the supplied evidence on the server, or an upload.
+    source: "empty" | "supplied" | "upload";
+  };
 }

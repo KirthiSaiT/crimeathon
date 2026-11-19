@@ -24,7 +24,7 @@ function SimulationView() {
       {state.status === "loading" ? <TableSkeleton rows={6} /> : null}
       {state.status === "error" ? <ErrorState what="simulation" message={state.message} onRetry={retry} /> : null}
       {state.status === "ready" && state.data === null ? (
-        <EmptyState title="No simulation for these logs." body="The replay measures the defense against our own labels of the supplied evidence, which do not apply to new data. Go back to the supplied evidence to see it." />
+        <EmptyState title="No simulation for these logs." body="The replay needs to know which events are the attack. Upload a case-facts file with the attacker address ranges together with the logs and this page replays the defense against them." />
       ) : null}
       {state.status === "ready" && state.data ? (
         <>

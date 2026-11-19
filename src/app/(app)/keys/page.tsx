@@ -5,13 +5,13 @@ import { ChevronRight, KeyRound } from "lucide-react";
 import { PageShell, Section } from "@/components/page-shell";
 import { Tag, type TagColor } from "@/components/tag";
 import { Db, DbBody, DbCell, DbHead, DbHeader, DbRow, td, th } from "@/components/db";
-import { ErrorState, PageSkeleton, TableSkeleton } from "@/components/states";
+import { EmptyState, ErrorState, PageSkeleton, TableSkeleton } from "@/components/states";
 import { Button } from "@/components/ui/button";
 import { Collapsible, CollapsibleContent, CollapsibleTrigger } from "@/components/ui/collapsible";
-import { useSlice } from "@/components/analysis-provider";
+import { useAnalysis, useSlice } from "@/components/analysis-provider";
+import { fmtDate } from "@/lib/format";
 import { useAuth } from "@/components/role-provider";
 import { useKeyActions, type KeyActionKind } from "@/lib/supabase/data";
-import { fmtDate } from "@/lib/format";
 
 const riskColor: Record<string, TagColor> = { High: "red", Medium: "yellow", Low: "green" };
 const actionLabel: Record<KeyActionKind, string> = {
@@ -26,6 +26,8 @@ const requestable: KeyActionKind[] = ["narrow_scope", "set_range", "rotate", "qu
 
 function KeysView() {
   const { state, retry } = useSlice((a) => a.keys);
+  const { state: whole } = useAnalysis();
+  const exported = whole.status === "ready" ? whole.data.stats.registerExported : null;
   const { status: authStatus, can } = useAuth();
   const { actions, error: actionError, request, setStatus } = useKeyActions();
   const [failure, setFailure] = useState<string | null>(null);
@@ -37,12 +39,15 @@ function KeysView() {
     <PageShell
       icon={KeyRound}
       title="Keys"
-      lead="Every key in the connected software register, scored against the company's own policy (E10). The three used in the incident are marked."
+      lead="Every key in the connected software register, scored against the company's own policy (E10). Keys used in flagged activity are marked."
     >
-      <Section title="Register" note="Current state as exported on 2 Sep 2026. The register keeps no history.">
+      <Section title="Register" note={exported ? `Current state as exported on ${fmtDate(exported)}. The register keeps no history.` : "The register keeps no history."}>
         {state.status === "loading" ? <TableSkeleton rows={8} /> : null}
         {state.status === "error" ? <ErrorState what="key register" message={state.message} onRetry={retry} /> : null}
-        {state.status === "ready" ? (
+        {state.status === "ready" && state.data.length === 0 ? (
+          <EmptyState title="No key register loaded." body="Upload the connected software register (a .json file with an integrations list) on the Upload page to score every key." />
+        ) : null}
+        {state.status === "ready" && state.data.length > 0 ? (
           <div className="overflow-x-auto">
             <Db className="min-w-[54rem]">
               <DbHeader>

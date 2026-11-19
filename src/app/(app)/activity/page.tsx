@@ -35,7 +35,7 @@ function ActivityView() {
   const [saved, setSaved] = useState(false);
 
   const signedIn = authStatus === "signed-in";
-  const canSave = can("save_run") && state.status === "ready";
+  const canSave = can("save_run") && state.status === "ready" && state.data.files.length > 0;
 
   const saveRun = async () => {
     if (state.status !== "ready") return;

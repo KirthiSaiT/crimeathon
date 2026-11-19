@@ -8,9 +8,9 @@
     "start": "next start",
     "lint": "eslint",
     "test": "vitest run",
-    "analyze": "tsx scripts/analyze.ts",
+    "analyze": "tsx scripts/analyze.ts --case case-pack/CR-26-047.json",
     "typecheck": "tsc --noEmit",
-    "simulate": "tsx scripts/simulate.ts"
+    "simulate": "tsx scripts/simulate.ts --case case-pack/CR-26-047.json"
   },
   "dependencies": {
     "@base-ui/react": "^1.9.0",

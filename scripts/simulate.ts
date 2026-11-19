@@ -1,11 +1,14 @@
 // Replay the attack through the defense: npm run simulate [evidence folder]
 // Everything comes from the engine's own simulation, so the app and this script always agree.
-import { analyze } from "../src/engine";
+import { readFileSync } from "node:fs";
+import { analyze, parseFacts } from "../src/engine";
 import { loadEvidenceDir } from "../src/engine/node";
 
-const dir = process.argv.find((a, i) => i > 1 && !a.startsWith("--")) ?? "evidence";
-const s = analyze(loadEvidenceDir(dir)).simulation;
-if (!s) throw new Error("No simulation for this input.");
+const caseAt = process.argv.indexOf("--case");
+const facts = caseAt > 0 ? parseFacts(JSON.parse(readFileSync(process.argv[caseAt + 1], "utf8"))) : null;
+const dir = process.argv.find((a, i) => i > 1 && !a.startsWith("--") && process.argv[i - 1] !== "--case") ?? "evidence";
+const s = analyze(loadEvidenceDir(dir), facts ?? undefined).simulation;
+if (!s) throw new Error("No simulation for this input: it needs case facts with attacker address ranges (--case).");
 
 console.log(`Attacker events: ${s.attackerEvents}\n\nWhen the defense would have fired:`);
 for (const m of s.milestones) console.log(`  ${m.when.slice(0, 16)}  ${m.daysBeforeChange.toFixed(1).padStart(5)} days before the change  ${m.label}  (${m.detail})`);

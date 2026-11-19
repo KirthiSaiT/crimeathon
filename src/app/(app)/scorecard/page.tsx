@@ -28,7 +28,7 @@ function ScorecardView() {
         {state.status === "ready" && state.data.scorecard.length === 0 ? (
           <EmptyState
             title="No accuracy figures for these logs."
-            body="Accuracy is measured against our own labels of the supplied evidence, which do not apply to new data. The alerts, bank gate and claims still run on your logs. Go back to the supplied evidence to see the scorecard."
+            body="Accuracy needs to know which events are the attack. Upload a case-facts file with the attacker address ranges together with the logs and this page measures the detector against them. The alerts, bank gate and keys already run on your logs."
           />
         ) : null}
         {state.status === "ready" && state.data.scorecard.length > 0 ? (

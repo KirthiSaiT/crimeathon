@@ -1,4 +1,5 @@
 import { parseCSV } from "./csv";
+import { parseFacts } from "./facts";
 import type { ChangeRow, FileInfo, Kind, Options, Parsed, Register } from "./types";
 import { defaultOptions } from "./types";
 import type { RegisterKey, SystemName } from "../lib/types";
@@ -47,6 +48,13 @@ export function addFile(into: Parsed, name: string, text: string, options: Parti
   if (name.toLowerCase().endsWith(".json")) {
     try {
       const j = JSON.parse(text) as { export_generated?: string; integrations?: RegisterKey[] };
+      const facts = parseFacts(j);
+      if (facts && !j.integrations) {
+        into.context = facts;
+        const info: FileInfo = { name, id: "FACTS", kind: "facts", rows: facts.events.length + facts.claims.length + facts.maintenance.length + facts.enrolled.length };
+        into.files.push(info);
+        return info;
+      }
       if (j.integrations && j.integrations.length > 0 && j.integrations[0].credential_id) {
         into.register = { exported: j.export_generated ?? new Date().toISOString(), keys: j.integrations } satisfies Register;
         const info: FileInfo = { name, id: named ?? "E04", kind: "register", rows: j.integrations.length };

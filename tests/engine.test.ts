@@ -1,6 +1,7 @@
 import path from "node:path";
 import { describe, expect, it } from "vitest";
-import { addFile, analyze, emptyParsed, type Analysis, type Parsed } from "../src/engine";
+import { addFile, analyze, emptyParsed, type Analysis, type Context, type Parsed } from "../src/engine";
+import pack from "../case-pack/CR-26-047.json";
 import { buildBaseline } from "../src/engine/baseline";
 import { checkBank } from "../src/engine/bank";
 import { coverCidr, inCidr } from "../src/engine/cidr";
@@ -9,7 +10,9 @@ import { defaultOptions } from "../src/engine/types";
 
 const dir = process.env.EVIDENCE_DIR ?? path.join(process.cwd(), "evidence");
 const parsed: Parsed = loadEvidenceDir(dir);
-const result: Analysis = analyze(parsed);
+// The facts the team typed in from the PDFs. The engine starts without them; these tests supply them on purpose.
+const ctx = pack as unknown as Context;
+const result: Analysis = analyze(parsed, ctx);
 const group = (title: string, key?: string) => result.alerts.find((a) => a.title === title && (!key || a.key === key));
 
 describe("loading", () => {
@@ -113,7 +116,7 @@ describe("vendor claims are tested against the logs", () => {
 describe("variations the team has not seen", () => {
   it("still catches the attack when every vendor-link address is renumbered", () => {
     const moved: Parsed = { ...parsed, events: parsed.events.map((e) => ({ ...e, source: e.source.replace(/^10\.20\.4\.(\d+)$/, (_m, n: string) => `10.20.4.${+n + 90}`) })) };
-    const r = analyze(moved);
+    const r = analyze(moved, ctx);
     expect(r.alerts.some((a) => a.title === "Changes a supplier bank account")).toBe(true);
     expect(r.scorecard[0].fn).toBe(0);
   });
@@ -235,5 +238,58 @@ describe("guarding the money", () => {
     const after = checkBank([...parsed.changes, contact]).bank.find((b) => b.id === old!.id);
     expect(after?.hold).toBe(true);
     expect(after?.contactChangedDays).toBe(3);
+  });
+});
+
+describe("starting with nothing", () => {
+  it("shows an empty analysis, not preloaded output", () => {
+    const empty = analyze(emptyParsed());
+    expect(empty.alerts).toEqual([]);
+    expect(empty.timeline).toEqual([]);
+    expect(empty.keys).toEqual([]);
+    expect(empty.claims).toEqual([]);
+    expect(empty.scorecard).toEqual([]);
+    expect(empty.simulation).toBeNull();
+    expect(empty.files).toEqual([]);
+    expect(empty.stats.source).toBe("empty");
+    expect(empty.stats.from).toBeNull();
+  });
+
+  it("measures no accuracy when no attacker labels were given", () => {
+    const noFacts = analyze(parsed);
+    expect(noFacts.stats.labelled).toBe(false);
+    expect(noFacts.scorecard).toEqual([]);
+    expect(noFacts.simulation).toBeNull();
+    expect(noFacts.claims).toEqual([]);
+  });
+
+  it("flags the ordinary activity it was never told about, then sets it aside once the facts arrive", () => {
+    const noFacts = analyze(parsed);
+    const ordinaryWith = result.alerts.filter((a) => a.status === "ordinary").map((a) => a.title);
+    expect(ordinaryWith).toContain("Contact-detail sync (release 3.6.0)");
+    expect(ordinaryWith).toContain("Sandbox traffic during announced maintenance");
+    const ordinaryWithout = noFacts.alerts.filter((a) => a.status === "ordinary").map((a) => a.title);
+    expect(ordinaryWithout).not.toContain("Contact-detail sync (release 3.6.0)");
+    expect(ordinaryWithout).not.toContain("Sandbox traffic during announced maintenance");
+    expect(noFacts.alerts.filter((a) => a.status !== "ordinary").length).toBeGreaterThan(result.alerts.filter((a) => a.status !== "ordinary").length);
+  });
+
+  it("still holds the two suspicious bank changes with no facts at all, because that check needs none", () => {
+    expect(analyze(parsed).bank.filter((b) => b.hold).map((b) => b.vendorId).sort()).toEqual(["V-0233", "V-0412"]);
+  });
+
+  it("takes case facts from an uploaded JSON file", () => {
+    const p = emptyParsed();
+    const info = addFile(p, "my-facts.json", JSON.stringify(pack));
+    expect(info?.kind).toBe("facts");
+    expect(p.context?.claims.length).toBe(ctx.claims.length);
+    expect(analyze(p).claims.length).toBe(ctx.claims.length);
+    expect(addFile(emptyParsed(), "junk.json", JSON.stringify({ hello: "world" }))).toBeNull();
+  });
+
+  it("records the span the logs cover and when the register was exported", () => {
+    expect(result.stats.from).toMatch(/^2026-06-0/);
+    expect(result.stats.to).toMatch(/^2026-09-0/);
+    expect(result.stats.registerExported).toMatch(/^2026-09-02/);
   });
 });
