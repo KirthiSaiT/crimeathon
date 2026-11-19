@@ -6,6 +6,7 @@ import { Callout, PageShell, Section } from "@/components/page-shell";
 import { Tag, type TagColor } from "@/components/tag";
 import { Db, DbBody, DbCell, DbHead, DbHeader, DbRow, td, th } from "@/components/db";
 import { EmptyState, ErrorState, PageSkeleton, TableSkeleton } from "@/components/states";
+import { SeleniumPanel } from "@/components/selenium-panel";
 import { useSlice } from "@/components/analysis-provider";
 import { fmtTime } from "@/lib/format";
 
@@ -19,6 +20,7 @@ function SimulationView() {
     <PageShell
       icon={FlaskConical}
       title="Simulation"
+      always={<SeleniumPanel />}
       lead="The attack replayed through the defense. When would each layer have fired, and which single controls would have stopped the bank change?"
     >
       {state.status === "loading" ? <TableSkeleton rows={6} /> : null}

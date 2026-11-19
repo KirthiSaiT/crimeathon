@@ -9,6 +9,7 @@ import { simulate } from "./simulate";
 import { groupFindings } from "./groups";
 import { assessKeys } from "./keys";
 import { sortEvents } from "./loaders";
+import { maxOf, minOf } from "./num";
 import type { Analysis, Context, Options, Parsed } from "./types";
 import { defaultOptions } from "./types";
 
@@ -76,8 +77,8 @@ export function analyze(input: Parsed, given: Context = defaultContext, options:
       ordinary: findings.size - flagged,
       cutoff: iso(baseline.cutoff),
       labelled: measureAccuracy,
-      from: stamps.length ? iso(Math.min(...stamps)) : null,
-      to: stamps.length ? iso(Math.max(...stamps)) : null,
+      from: stamps.length ? iso(minOf(stamps)) : null,
+      to: stamps.length ? iso(maxOf(stamps)) : null,
       registerExported: parsed.register?.exported ?? null,
       source: parsed.files.length === 0 ? "empty" : "upload",
     },

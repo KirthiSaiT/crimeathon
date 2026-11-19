@@ -293,3 +293,14 @@ describe("starting with nothing", () => {
     expect(result.stats.registerExported).toMatch(/^2026-09-02/);
   });
 });
+
+describe("very large uploads", () => {
+  it("analyses hundreds of thousands of events without failing", () => {
+    // Math.max(...array) throws "Maximum call stack size exceeded" past roughly 120,000 elements.
+    const big = { ...parsed, events: [...parsed.events, ...parsed.events, ...parsed.events], changes: [...parsed.changes] };
+    expect(big.events.length).toBeGreaterThan(300_000);
+    const r = analyze(big, ctx);
+    expect(r.stats.events).toBe(big.events.length);
+    expect(r.stats.from).toMatch(/^2026-06-0/);
+  }, 120_000);
+});

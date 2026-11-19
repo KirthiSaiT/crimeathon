@@ -10,7 +10,11 @@
     "test": "vitest run",
     "analyze": "tsx scripts/analyze.ts --case case-pack/CR-26-047.json",
     "typecheck": "tsc --noEmit",
-    "simulate": "tsx scripts/simulate.ts --case case-pack/CR-26-047.json"
+    "simulate": "tsx scripts/simulate.ts --case case-pack/CR-26-047.json",
+    "e2e": "node tests/e2e/run.mjs",
+    "e2e:report": "node tests/e2e/report.mjs",
+    "test:bankgate": "node tests/bank-gate/run.mjs test",
+    "test:modules": "node tests/modules/run.mjs"
   },
   "dependencies": {
     "@base-ui/react": "^1.9.0",
@@ -34,6 +38,7 @@
     "@types/react-dom": "^19",
     "eslint": "^9",
     "eslint-config-next": "16.4.6",
+    "selenium-webdriver": "^4.53.0",
     "tailwindcss": "4.3.3",
     "tsx": "^4.23.15",
     "typescript": "^5",

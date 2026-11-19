@@ -138,7 +138,9 @@ export function RoleProvider({ children }: { children: React.ReactNode }) {
     const supabase = getSupabase();
     if (!supabase) return { error: "Sign-in is not configured.", needsConfirmation: false };
     const { data, error } = await supabase.auth.signUp({ email, password });
-    return { error: error ? error.message : null, needsConfirmation: !error && !data.session };
+    // The free email service allows only a few confirmation emails an hour. Say so in plain words.
+    const message = error && /rate limit/i.test(error.message) ? "Too many confirmation emails have been sent just now. Wait about an hour and try again, or ask an administrator to create the account." : error?.message ?? null;
+    return { error: message, needsConfirmation: !error && !data.session };
   }, []);
 
   const signOut = useCallback(async () => {

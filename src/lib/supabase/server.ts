@@ -7,7 +7,7 @@ const key = process.env.NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY;
 export type Access = { ok: true } | { ok: false; status: 401 | 403; message: string };
 
 // Who may read the case data. Without a database the app stays open, as it was before sign-in existed.
-// A visitor who is not signed in may read unless REQUIRE_SIGN_IN=true. A signed-in account needs the
+// A visitor who is not signed in may read only when REQUIRE_SIGN_IN=false (the default is that sign-in is required). A signed-in account needs the
 // view_case permission, which the vendor role does not have.
 export async function authorizeCase(): Promise<Access> {
   if (!url || !key) return { ok: true };
@@ -17,7 +17,7 @@ export async function authorizeCase(): Promise<Access> {
   });
   const { data } = await supabase.auth.getUser();
   if (!data.user) {
-    return process.env.REQUIRE_SIGN_IN === "true" ? { ok: false, status: 401, message: "Sign in to read the case data." } : { ok: true };
+    return process.env.REQUIRE_SIGN_IN !== "false" ?{ ok: false, status: 401, message: "Sign in to read the case data." } : { ok: true };
   }
   const { data: profile } = await supabase.from("profiles").select("role").eq("id", data.user.id).maybeSingle();
   if (!profile) return { ok: false, status: 403, message: "Your account has no role yet." };

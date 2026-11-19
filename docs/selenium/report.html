@@ -1,0 +1,101 @@
+<!doctype html>
+<html lang="en"><head><meta charset="utf-8"><title>Warden: Selenium test report</title>
+<style>
+  @page { size: A4; margin: 14mm; }
+  body { font: 11px/1.5 "Segoe UI", Arial, sans-serif; color: #1a1a1a; margin: 0; }
+  h1 { font-size: 22px; margin: 0 0 2px; } h2 { font-size: 15px; margin: 22px 0 6px; border-bottom: 2px solid #1a1a1a; padding-bottom: 3px; } h3 { font-size: 12px; margin: 14px 0 4px; }
+  table { width: 100%; border-collapse: collapse; margin: 6px 0; } th, td { text-align: left; padding: 4px 6px; border-bottom: 1px solid #cfcfcf; vertical-align: top; }
+  th { background: #f0eee9; font-weight: 600; } .num { text-align: right; white-space: nowrap; font-variant-numeric: tabular-nums; } .mono { font-family: Consolas, monospace; } .small { font-size: 10px; }
+  .muted { color: #555; } .ok { color: #11663a; font-weight: 700; } .bad { color: #b3261e; font-weight: 700; }
+  .cards { display: grid; grid-template-columns: repeat(4, 1fr); gap: 8px; margin: 10px 0; } .card { border: 1px solid #1a1a1a; padding: 8px 10px; } .card b { display: block; font-size: 20px; } .card span { color: #555; }
+  figure { margin: 8px 0; break-inside: avoid; } figure img { width: 100%; border: 1px solid #cfcfcf; } figcaption { color: #555; font-size: 10px; } .two { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; }
+  .box { border-left: 3px solid #b3261e; background: #fbeeed; padding: 6px 10px; margin: 8px 0; } .note { border-left: 3px solid #1a1a1a; background: #f6f4ef; padding: 6px 10px; margin: 8px 0; }
+  ul { margin: 4px 0 4px 18px; padding: 0; }
+</style></head><body>
+<h1>Warden: Selenium test report</h1>
+<div class="muted">Team H4CK_077, CRIMEATHON'26 case CR-26-047, Defense. Run on 19 November 2026 at 22:27 UTC.</div>
+
+<div class="cards">
+  <div class="card"><b>19 / 19</b><span>automated tests passed</span></div>
+  <div class="card"><b>509 ms</b><span>worst page load, full data on screen</span></div>
+  <div class="card"><b>3.26 s</b><span>worst upload through the browser (10.7 MB, 109,428 rows)</span></div>
+  <div class="card"><b>25.22 s</b><span>worst stress case (85.3 MB, 875,424 rows), HTTP 200</span></div>
+</div>
+
+<h2>1. What was tested and how</h2>
+<p>Selenium WebDriver (selenium-webdriver 4.53.0) drove a real Microsoft Edge browser through the app the way a person would: choosing files in the upload dialog, clicking buttons, reading what appears on screen, resizing to a phone, and reloading. The tests run against a <b>production build</b> of the app (Next.js <span class="mono">next start</span>), not the development server, because the development server is slower and would overstate load times.</p>
+<table>
+  <tr><th>Environment</th><th></th></tr>
+  <tr><td>Browser</td><td>MicrosoftEdge 157.0.4341.60, 1440 x 1000, headless</td></tr>
+  <tr><td>Driver / tool</td><td>157.0.4341.60, selenium-webdriver 4.53.0, Node v26.13.1</td></tr>
+  <tr><td>Machine</td><td>11th Gen Intel(R) Core(TM) i5-1135G7 @ 2.40GHz, 8 logical CPUs, 7.6 GB memory, Windows_NT 10.0.26100 (x64)</td></tr>
+  <tr><td>Server</td><td>Next.js production build (next start), same machine (so there is no network delay in these numbers)</td></tr>
+  <tr><td>Data</td><td>The supplied evidence: 7 logs and the key register, 10.7 MB, 109,428 rows, plus the case-facts file</td></tr>
+</table>
+
+<h2>2. Functional results</h2>
+<table><tr><th>ID</th><th>Test and what it checks</th><th>Result</th><th>Time</th></tr><tr><td class="mono">T01</td><td><b>The app starts empty</b><br><span class="muted">No preloaded output: the overview asks for logs and the sidebar says no case is loaded.</span></td><td class="ok">PASS</td><td class="num">4.88 s</td></tr><tr><td class="mono">T02</td><td><b>A renamed log is recognised by its columns</b><br><span class="muted">E19 copied to bank-changes.csv is recognised and runs.</span></td><td class="ok">PASS</td><td class="num">1.22 s</td></tr><tr><td class="mono">T03</td><td><b>The vendor change log alone holds the two suspicious bank changes</b><br><span class="muted">E19 gives holds on V-0412 and V-0233 on the Bank gate.</span></td><td class="ok">PASS</td><td class="num">1.34 s</td></tr><tr><td class="mono">T04</td><td><b>The BlueVault log alone finds the finance-file reads</b><br><span class="muted">E05 gives a critical alert group of 38 reads.</span></td><td class="ok">PASS</td><td class="num">1.30 s</td></tr><tr><td class="mono">T05</td><td><b>All eight files without case facts</b><br><span class="muted">109,061 events, 24 alert groups, 2 suppliers on hold.</span><br><span class="mono small">109,061 events read, 24 alert groups, 2 suppliers on hold.</span></td><td class="ok">PASS</td><td class="num">3.56 s</td></tr><tr><td class="mono">T06</td><td><b>All eight files with the case facts</b><br><span class="muted">23 alert groups, 8 claims, scorecard 237 caught.</span><br><span class="mono small">109,061 events read, 23 alert groups, 2 suppliers on hold.</span></td><td class="ok">PASS</td><td class="num">5.11 s</td></tr><tr><td class="mono">T07</td><td><b>Results survive a reload</b><br><span class="muted">After a reload the overview still shows the case.</span></td><td class="ok">PASS</td><td class="num">733 ms</td></tr><tr><td class="mono">T08</td><td><b>An alert opens with its reason and evidence</b><br><span class="muted">Click an alert: the panel explains why and cites the evidence.</span></td><td class="ok">PASS</td><td class="num">1.19 s</td></tr><tr><td class="mono">T09</td><td><b>A key shows what it did and a narrower scope</b><br><span class="muted">key-tb-07 advises the address block 10.20.4.0/27.</span></td><td class="ok">PASS</td><td class="num">896 ms</td></tr><tr><td class="mono">T10</td><td><b>The payment-run page uses the run days from the case facts</b><br><span class="muted">A next-run date is shown.</span></td><td class="ok">PASS</td><td class="num">291 ms</td></tr><tr><td class="mono">T11</td><td><b>A fixed address in a log is not what the detector depends on</b><br><span class="muted">E02 with the attacker address replaced still raises the secret-hunt alert.</span></td><td class="ok">PASS</td><td class="num">1.97 s</td></tr><tr><td class="mono">T12</td><td><b>Files that are not logs are refused</b><br><span class="muted">A junk JSON, a wrong-column CSV and the staff roster are 'Not recognised'; nothing runs.</span></td><td class="ok">PASS</td><td class="num">644 ms</td></tr><tr><td class="mono">T13</td><td><b>Clear and start again empties the app</b><br><span class="muted">After loading logs, Clear and start again returns every page to its empty state.</span></td><td class="ok">PASS</td><td class="num">2.36 s</td></tr><tr><td class="mono">T14</td><td><b>Signed-out visitors see sign-in buttons and gated pages say so</b><br><span class="muted">Sign in and Sign up appear; Key vault, Support tickets and Activity ask for sign-in.</span></td><td class="ok">PASS</td><td class="num">1.61 s</td></tr><tr><td class="mono">T15</td><td><b>A wrong password shows an error</b><br><span class="muted">The sign-in form reports the failure from the database.</span></td><td class="ok">PASS</td><td class="num">1.94 s</td></tr><tr><td class="mono">T16</td><td><b>The dark-mode toggle works</b><br><span class="muted">The page switches to the dark theme.</span></td><td class="ok">PASS</td><td class="num">1.08 s</td></tr><tr><td class="mono">T17</td><td><b>Phone width: no sideways scroll and a menu</b><br><span class="muted">Key pages fit 375 px wide and show a menu button.</span></td><td class="ok">PASS</td><td class="num">4.19 s</td></tr><tr><td class="mono">T18</td><td><b>Every page loads without browser errors</b><br><span class="muted">Sixteen pages, no severe console errors, exactly one main heading each.</span><br><span class="mono small">16 pages visited</span></td><td class="ok">PASS</td><td class="num">13.80 s</td></tr><tr><td class="mono">T19</td><td><b>The analysis API behaves</b><br><span class="muted">GET answers an empty analysis; POST with junk answers 400.</span></td><td class="ok">PASS</td><td class="num">247 ms</td></tr></table>
+
+<h2>3. Load times</h2>
+<p>All page timings are with the <b>full dataset loaded</b> (all 8 files and the case facts, 23 alert groups, 40 bank changes, 32 timeline rows). "Page ready" is measured from the moment the browser is told to open the page until the table data is visible, so it includes loading the page, running its code and drawing the data.</p>
+<h3>3.1 Pages (milliseconds)</h3>
+<table><tr><th>Page</th><th class="num">First visit: page loaded</th><th class="num">First visit: data visible</th><th class="num">Repeat: fastest</th><th class="num">Repeat: average</th><th class="num">Repeat: 95th percentile</th><th class="num">Repeat: slowest</th></tr><tr><td>Overview</td><td class="num">125 ms</td><td class="num">173 ms</td><td class="num">391 ms</td><td class="num">433 ms</td><td class="num">481 ms</td><td class="num"><b>481 ms</b></td></tr><tr><td>Alerts</td><td class="num">320 ms</td><td class="num">406 ms</td><td class="num">394 ms</td><td class="num">436 ms</td><td class="num">475 ms</td><td class="num"><b>475 ms</b></td></tr><tr><td>Keys</td><td class="num">400 ms</td><td class="num">476 ms</td><td class="num">325 ms</td><td class="num">392 ms</td><td class="num">509 ms</td><td class="num"><b>509 ms</b></td></tr><tr><td>Bank gate</td><td class="num">177 ms</td><td class="num">208 ms</td><td class="num">369 ms</td><td class="num">401 ms</td><td class="num">448 ms</td><td class="num"><b>448 ms</b></td></tr><tr><td>Payment run</td><td class="num">196 ms</td><td class="num">269 ms</td><td class="num">350 ms</td><td class="num">386 ms</td><td class="num">454 ms</td><td class="num"><b>454 ms</b></td></tr><tr><td>Vendor claims</td><td class="num">123 ms</td><td class="num">164 ms</td><td class="num">160 ms</td><td class="num">262 ms</td><td class="num">387 ms</td><td class="num"><b>387 ms</b></td></tr><tr><td>Timeline</td><td class="num">371 ms</td><td class="num">478 ms</td><td class="num">156 ms</td><td class="num">189 ms</td><td class="num">249 ms</td><td class="num"><b>249 ms</b></td></tr><tr><td>Scorecard</td><td class="num">175 ms</td><td class="num">211 ms</td><td class="num">158 ms</td><td class="num">180 ms</td><td class="num">200 ms</td><td class="num"><b>200 ms</b></td></tr><tr><td>Simulation</td><td class="num">135 ms</td><td class="num">175 ms</td><td class="num">158 ms</td><td class="num">175 ms</td><td class="num">188 ms</td><td class="num"><b>188 ms</b></td></tr></table>
+<div class="muted">First visit: a fresh browser each time. Repeat: 6 visits in one browser.</div>
+
+<h3>3.2 Running the detector (the heaviest operation)</h3>
+<table>
+  <tr><th>Measure</th><th class="num">Fastest</th><th class="num">Average</th><th class="num">95th percentile</th><th class="num">Slowest</th><th>Runs</th></tr>
+  <tr><td>Server analysis of all 8 files and the case facts (10.8 MB in, 54 KB out)</td><td class="num">1.81 s</td><td class="num">2.46 s</td><td class="num">3.40 s</td><td class="num"><b>3.40 s</b></td><td>7</td></tr>
+  <tr><td>Whole upload in the browser: click "Run" until the results are on screen</td><td class="num">1.69 s</td><td class="num">2.47 s</td><td class="num">3.26 s</td><td class="num"><b>3.26 s</b></td><td>4</td></tr>
+</table>
+
+<h3>3.3 Stress test: how load time grows with data</h3>
+<p>The same logs repeated 1, 2, 4 and 8 times, to find the worst case and where it breaks.</p>
+<table><tr><th class="num">Size</th><th class="num">Log rows</th><th class="num">Upload</th><th class="num">Analysis time</th><th>Result</th></tr><tr><td class="num">1 x</td><td class="num">109,428</td><td class="num">10.7 MB</td><td class="num"><b>2.52 s</b></td><td class="ok">HTTP 200</td></tr><tr><td class="num">2 x</td><td class="num">218,856</td><td class="num">21.3 MB</td><td class="num"><b>5.34 s</b></td><td class="ok">HTTP 200</td></tr><tr><td class="num">4 x</td><td class="num">437,712</td><td class="num">42.6 MB</td><td class="num"><b>10.33 s</b></td><td class="ok">HTTP 200</td></tr><tr><td class="num">8 x</td><td class="num">875,424</td><td class="num">85.3 MB</td><td class="num"><b>25.22 s</b></td><td class="ok">HTTP 200</td></tr></table>
+<p>Time grows roughly in step with the data. The largest case, <b>85.3 MB and 875,424 rows (about 8 times the supplied evidence), finished in 25.22 s</b>.</p>
+
+<h2>4. Worst load times</h2>
+<table>
+  <tr><th>Case</th><th class="num">Worst time</th><th>Detail</th></tr>
+  <tr><td>Slowest page, first visit</td><td class="num"><b>478 ms</b></td><td>Timeline, fresh browser, data visible</td></tr>
+  <tr><td>Slowest page, repeat visits</td><td class="num"><b>509 ms</b></td><td>Keys, slowest of 6</td></tr>
+  <tr><td>Slowest across every page and run</td><td class="num"><b>509 ms</b></td><td>Keys. In repeated complete runs of this suite the slowest page varied between roughly 200 ms and 300 ms, so expect a run-to-run spread of about 100 ms.</td></tr>
+  <tr><td>Running the detector on the supplied evidence</td><td class="num"><b>3.26 s</b></td><td>From clicking Run until the results are on screen</td></tr>
+  <tr><td>Stress case (85.3 MB, 875,424 rows)</td><td class="num"><b>25.22 s</b></td><td>Server analysis only</td></tr>
+</table>
+
+<h2>5. A real defect the stress test found, and its fix</h2>
+<div class="box"><b>Defect.</b> Uploading more than roughly 120,000 log rows in total made the server answer <b>HTTP 500 "Maximum call stack size exceeded"</b>. The supplied evidence (109,428 rows) was just under the limit, which is why every earlier check passed. The cause was code that found the earliest and latest event with <span class="mono">Math.min(...list)</span> and <span class="mono">Math.max(...list)</span>, which pass every element as an argument.</div>
+<div class="note"><b>Fix.</b> Those calls were replaced with a plain loop (<span class="mono">src/engine/num.ts</span>). A regression test now analyses more than 300,000 events and must not fail. After the fix the 2 x, 4 x and 8 x cases all return HTTP 200 (section 3.3). The unit tests went from 38 to 39, all passing.</div>
+<p>Two other issues found while writing the tests were in the tests, not the app: the app uses smooth scrolling, so a test must scroll instantly before it clicks, and the browser's own start page writes a harmless message to the log, which the tests now ignore.</p>
+
+<h2>6. Screenshots from the run</h2>
+<div class="two">
+<figure><img src="screenshots/T01-empty.png" alt="T01: the app starts empty"><figcaption>T01: the app starts empty</figcaption></figure>
+<figure><img src="screenshots/T03-bank-gate.png" alt="T03: one log (E19) holds the two suspicious bank changes"><figcaption>T03: one log (E19) holds the two suspicious bank changes</figcaption></figure>
+<figure><img src="screenshots/T06-after-full-upload.png" alt="T06: all files and the case facts, the scorecard"><figcaption>T06: all files and the case facts, the scorecard</figcaption></figure>
+<figure><img src="screenshots/T08-alert-panel.png" alt="T08: an alert with its reason and evidence"><figcaption>T08: an alert with its reason and evidence</figcaption></figure>
+<figure><img src="screenshots/T09-keys-advice.png" alt="T09: a key with its narrower scope and address block"><figcaption>T09: a key with its narrower scope and address block</figcaption></figure>
+<figure><img src="screenshots/T12-refused.png" alt="T12: files that are not logs are refused"><figcaption>T12: files that are not logs are refused</figcaption></figure>
+<figure><img src="screenshots/T14-guest-gate.png" alt="T14: a signed-out visitor is asked to sign in"><figcaption>T14: a signed-out visitor is asked to sign in</figcaption></figure>
+<figure><img src="screenshots/T17-mobile.png" alt="T17: phone width"><figcaption>T17: phone width</figcaption></figure>
+<figure><img src="screenshots/page-alerts.png" alt="Alerts with the full data"><figcaption>Alerts with the full data</figcaption></figure>
+<figure><img src="screenshots/page-simulation.png" alt="Simulation with the full data"><figcaption>Simulation with the full data</figcaption></figure>
+</div>
+
+<h2>7. Limits of these results</h2>
+<ul>
+  <li>The server and the browser ran on the <b>same laptop</b>, so there is no network delay. On a real network the page times would be higher by the round-trip time, and an upload by the time to send the files.</li>
+  <li>The browser was <b>headless</b> Edge. A visible browser behaves the same but can be slightly slower to draw.</li>
+  <li>Timings are on a laptop with 7.6 GB of memory. A larger server would be faster.</li>
+  <li>The signed-in pages (Key vault, Support tickets, Access) need an account and a live database; they are covered by the database tests and manual checks, not by this browser run. This run covers the signed-out experience and the sign-in form.</li>
+  <li>The numbers come from one machine and a handful of runs per page. They show the order of magnitude and the shape of the growth, not a guarantee for every setup.</li>
+</ul>
+
+<h2>8. How to run it again</h2>
+<ul>
+  <li>Build and start the production server: <span class="mono">npm run build</span>, then <span class="mono">npx next start -p 3100</span></li>
+  <li>Run the tests and timings: <span class="mono">node tests/e2e/run.mjs</span> (results in <span class="mono">docs/selenium/results.json</span>)</li>
+  <li>Rebuild this report: <span class="mono">node tests/e2e/report.mjs</span></li>
+</ul>
+</body></html>

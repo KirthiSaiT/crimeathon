@@ -1,6 +1,7 @@
 import type { Alert, BankChange, BankStatus } from "../lib/types";
 import type { ChangeRow } from "./types";
 import { refsOf } from "./groups";
+import { maxOf } from "./num";
 
 const DAY = 86_400_000;
 const iso = (ts: number) => new Date(ts).toISOString().replace(".000Z", "Z");
@@ -11,7 +12,7 @@ const CONTACT_FIELDS = new Set(["contact_phone", "contact_email"]);
 export function checkBank(changes: ChangeRow[]): { bank: BankChange[]; alerts: Alert[] } {
   const bankRows = changes.filter((c) => c.field === "bank_account").sort((a, b) => a.ts - b.ts);
   if (bankRows.length === 0) return { bank: [], alerts: [] };
-  const endTs = Math.max(...changes.map((c) => c.ts));
+  const endTs = maxOf(changes.map((c) => c.ts));
 
   let maxSeen = 0;
   const seen = new Map<string, number>();

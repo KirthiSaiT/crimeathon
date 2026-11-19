@@ -31,6 +31,7 @@ export function PageShell({
   title,
   lead,
   actions,
+  always,
   children,
 }: {
   icon?: LucideIcon;
@@ -38,6 +39,8 @@ export function PageShell({
   lead?: string;
   aurora?: boolean;
   actions?: React.ReactNode;
+  // shown even when no logs are loaded, for a part of the page that does not depend on them
+  always?: React.ReactNode;
   children: React.ReactNode;
 }) {
   const { state } = useAnalysis();
@@ -52,7 +55,9 @@ export function PageShell({
         </div>
         <div className="ml-auto shrink-0">{actions ?? <AccountActions />}</div>
       </header>
-      <div className="mt-8 flex min-w-0 flex-col gap-12">{nothingLoaded ? <NoLogs /> : children}</div>
+      <div className="mt-8 flex min-w-0 flex-col gap-12">{nothingLoaded ? <NoLogs /> : children}
+        {always}
+      </div>
     </div>
   );
 }

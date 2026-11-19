@@ -1,0 +1,528 @@
+{
+  "startedAt": "2026-11-19T22:23:38.506Z",
+  "base": "http://localhost:3100",
+  "tests": [
+    {
+      "id": "T01",
+      "name": "The app starts empty",
+      "checks": "No preloaded output: the overview asks for logs and the sidebar says no case is loaded.",
+      "status": "pass",
+      "ms": 4880,
+      "notes": [],
+      "screenshot": "screenshots/T01-empty.png"
+    },
+    {
+      "id": "T02",
+      "name": "A renamed log is recognised by its columns",
+      "checks": "E19 copied to bank-changes.csv is recognised and runs.",
+      "status": "pass",
+      "ms": 1221,
+      "notes": []
+    },
+    {
+      "id": "T03",
+      "name": "The vendor change log alone holds the two suspicious bank changes",
+      "checks": "E19 gives holds on V-0412 and V-0233 on the Bank gate.",
+      "status": "pass",
+      "ms": 1343,
+      "notes": [],
+      "screenshot": "screenshots/T03-bank-gate.png"
+    },
+    {
+      "id": "T04",
+      "name": "The BlueVault log alone finds the finance-file reads",
+      "checks": "E05 gives a critical alert group of 38 reads.",
+      "status": "pass",
+      "ms": 1299,
+      "notes": []
+    },
+    {
+      "id": "T05",
+      "name": "All eight files without case facts",
+      "checks": "109,061 events, 24 alert groups, 2 suppliers on hold.",
+      "status": "pass",
+      "ms": 3555,
+      "notes": [
+        "109,061 events read, 24 alert groups, 2 suppliers on hold."
+      ]
+    },
+    {
+      "id": "T06",
+      "name": "All eight files with the case facts",
+      "checks": "23 alert groups, 8 claims, scorecard 237 caught.",
+      "status": "pass",
+      "ms": 5110,
+      "notes": [
+        "109,061 events read, 23 alert groups, 2 suppliers on hold."
+      ],
+      "screenshot": "screenshots/T06-after-full-upload.png"
+    },
+    {
+      "id": "T07",
+      "name": "Results survive a reload",
+      "checks": "After a reload the overview still shows the case.",
+      "status": "pass",
+      "ms": 733,
+      "notes": []
+    },
+    {
+      "id": "T08",
+      "name": "An alert opens with its reason and evidence",
+      "checks": "Click an alert: the panel explains why and cites the evidence.",
+      "status": "pass",
+      "ms": 1192,
+      "notes": [],
+      "screenshot": "screenshots/T08-alert-panel.png"
+    },
+    {
+      "id": "T09",
+      "name": "A key shows what it did and a narrower scope",
+      "checks": "key-tb-07 advises the address block 10.20.4.0/27.",
+      "status": "pass",
+      "ms": 896,
+      "notes": [],
+      "screenshot": "screenshots/T09-keys-advice.png"
+    },
+    {
+      "id": "T10",
+      "name": "The payment-run page uses the run days from the case facts",
+      "checks": "A next-run date is shown.",
+      "status": "pass",
+      "ms": 291,
+      "notes": []
+    },
+    {
+      "id": "T11",
+      "name": "A fixed address in a log is not what the detector depends on",
+      "checks": "E02 with the attacker address replaced still raises the secret-hunt alert.",
+      "status": "pass",
+      "ms": 1965,
+      "notes": []
+    },
+    {
+      "id": "T12",
+      "name": "Files that are not logs are refused",
+      "checks": "A junk JSON, a wrong-column CSV and the staff roster are 'Not recognised'; nothing runs.",
+      "status": "pass",
+      "ms": 644,
+      "notes": [],
+      "screenshot": "screenshots/T12-refused.png"
+    },
+    {
+      "id": "T13",
+      "name": "Clear and start again empties the app",
+      "checks": "After loading logs, Clear and start again returns every page to its empty state.",
+      "status": "pass",
+      "ms": 2356,
+      "notes": []
+    },
+    {
+      "id": "T14",
+      "name": "Signed-out visitors see sign-in buttons and gated pages say so",
+      "checks": "Sign in and Sign up appear; Key vault, Support tickets and Activity ask for sign-in.",
+      "status": "pass",
+      "ms": 1606,
+      "notes": [],
+      "screenshot": "screenshots/T14-guest-gate.png"
+    },
+    {
+      "id": "T15",
+      "name": "A wrong password shows an error",
+      "checks": "The sign-in form reports the failure from the database.",
+      "status": "pass",
+      "ms": 1937,
+      "notes": []
+    },
+    {
+      "id": "T16",
+      "name": "The dark-mode toggle works",
+      "checks": "The page switches to the dark theme.",
+      "status": "pass",
+      "ms": 1085,
+      "notes": []
+    },
+    {
+      "id": "T17",
+      "name": "Phone width: no sideways scroll and a menu",
+      "checks": "Key pages fit 375 px wide and show a menu button.",
+      "status": "pass",
+      "ms": 4186,
+      "notes": []
+    },
+    {
+      "id": "T18",
+      "name": "Every page loads without browser errors",
+      "checks": "Sixteen pages, no severe console errors, exactly one main heading each.",
+      "status": "pass",
+      "ms": 13802,
+      "notes": [
+        "16 pages visited"
+      ]
+    },
+    {
+      "id": "T19",
+      "name": "The analysis API behaves",
+      "checks": "GET answers an empty analysis; POST with junk answers 400.",
+      "status": "pass",
+      "ms": 247,
+      "notes": []
+    }
+  ],
+  "timing": {
+    "serverAnalysis": {
+      "inputMB": 10.8,
+      "responseKB": 54,
+      "runsMs": [
+        3396.7,
+        2637.2,
+        2142.5,
+        1808.9,
+        2827.3,
+        1821.5,
+        2581.3
+      ],
+      "stats": {
+        "n": 7,
+        "min": 1808.9,
+        "avg": 2459.3,
+        "median": 2581.3,
+        "p95": 3396.7,
+        "max": 3396.7
+      },
+      "firstRunMs": 3396.7
+    },
+    "scaling": [
+      {
+        "factor": 1,
+        "rows": 109428,
+        "inputMB": 10.7,
+        "ms": 2516.2,
+        "status": 200,
+        "responseKB": 54,
+        "error": ""
+      },
+      {
+        "factor": 2,
+        "rows": 218856,
+        "inputMB": 21.3,
+        "ms": 5336.6,
+        "status": 200,
+        "responseKB": 70,
+        "error": ""
+      },
+      {
+        "factor": 4,
+        "rows": 437712,
+        "inputMB": 42.6,
+        "ms": 10325.1,
+        "status": 200,
+        "responseKB": 272,
+        "error": ""
+      },
+      {
+        "factor": 8,
+        "rows": 875424,
+        "inputMB": 85.3,
+        "ms": 25216.8,
+        "status": 200,
+        "responseKB": 324,
+        "error": ""
+      }
+    ],
+    "browserUpload": {
+      "runsMs": [
+        3261.1,
+        2586.5,
+        2360.5,
+        1687.5
+      ],
+      "stats": {
+        "n": 4,
+        "min": 1687.5,
+        "avg": 2473.9,
+        "median": 2360.5,
+        "p95": 3261.1,
+        "max": 3261.1
+      }
+    },
+    "pages": [
+      {
+        "name": "Overview",
+        "path": "/overview",
+        "first": {
+          "loadMs": 124.8,
+          "readyMs": 172.7,
+          "ttfbMs": 5.5,
+          "transferKB": 6
+        },
+        "repeat": {
+          "load": {
+            "n": 6,
+            "min": 215.1,
+            "avg": 285.2,
+            "median": 249.9,
+            "p95": 371.8,
+            "max": 371.8
+          },
+          "ready": {
+            "n": 6,
+            "min": 390.9,
+            "avg": 432.5,
+            "median": 413,
+            "p95": 481,
+            "max": 481
+          }
+        }
+      },
+      {
+        "name": "Alerts",
+        "path": "/alerts",
+        "first": {
+          "loadMs": 320,
+          "readyMs": 406.4,
+          "ttfbMs": 21.6,
+          "transferKB": 6
+        },
+        "repeat": {
+          "load": {
+            "n": 6,
+            "min": 215.9,
+            "avg": 245.7,
+            "median": 223.6,
+            "p95": 359.3,
+            "max": 359.3
+          },
+          "ready": {
+            "n": 6,
+            "min": 393.9,
+            "avg": 435.7,
+            "median": 427.3,
+            "p95": 474.8,
+            "max": 474.8
+          }
+        }
+      },
+      {
+        "name": "Keys",
+        "path": "/keys",
+        "first": {
+          "loadMs": 400.3,
+          "readyMs": 475.9,
+          "ttfbMs": 27.4,
+          "transferKB": 6
+        },
+        "repeat": {
+          "load": {
+            "n": 6,
+            "min": 184.3,
+            "avg": 250.7,
+            "median": 227.5,
+            "p95": 415.1,
+            "max": 415.1
+          },
+          "ready": {
+            "n": 6,
+            "min": 324.9,
+            "avg": 392.1,
+            "median": 348.9,
+            "p95": 508.5,
+            "max": 508.5
+          }
+        }
+      },
+      {
+        "name": "Bank gate",
+        "path": "/bank-gate",
+        "first": {
+          "loadMs": 176.7,
+          "readyMs": 208.2,
+          "ttfbMs": 19.6,
+          "transferKB": 6
+        },
+        "repeat": {
+          "load": {
+            "n": 6,
+            "min": 211.1,
+            "avg": 266.2,
+            "median": 214.5,
+            "p95": 390.5,
+            "max": 390.5
+          },
+          "ready": {
+            "n": 6,
+            "min": 369.1,
+            "avg": 400.9,
+            "median": 379.1,
+            "p95": 447.9,
+            "max": 447.9
+          }
+        }
+      },
+      {
+        "name": "Payment run",
+        "path": "/payment-run",
+        "first": {
+          "loadMs": 196.4,
+          "readyMs": 268.9,
+          "ttfbMs": 26.6,
+          "transferKB": 7
+        },
+        "repeat": {
+          "load": {
+            "n": 6,
+            "min": 212.2,
+            "avg": 295.6,
+            "median": 277.8,
+            "p95": 368.1,
+            "max": 368.1
+          },
+          "ready": {
+            "n": 6,
+            "min": 349.7,
+            "avg": 386.2,
+            "median": 362.1,
+            "p95": 454,
+            "max": 454
+          }
+        }
+      },
+      {
+        "name": "Vendor claims",
+        "path": "/claims",
+        "first": {
+          "loadMs": 122.7,
+          "readyMs": 163.6,
+          "ttfbMs": 8.4,
+          "transferKB": 6
+        },
+        "repeat": {
+          "load": {
+            "n": 6,
+            "min": 120.9,
+            "avg": 205.4,
+            "median": 171.4,
+            "p95": 290.2,
+            "max": 290.2
+          },
+          "ready": {
+            "n": 6,
+            "min": 159.9,
+            "avg": 262.4,
+            "median": 207.1,
+            "p95": 386.5,
+            "max": 386.5
+          }
+        }
+      },
+      {
+        "name": "Timeline",
+        "path": "/timeline",
+        "first": {
+          "loadMs": 371.4,
+          "readyMs": 478.4,
+          "ttfbMs": 28.1,
+          "transferKB": 6
+        },
+        "repeat": {
+          "load": {
+            "n": 6,
+            "min": 106.2,
+            "avg": 136.6,
+            "median": 116.5,
+            "p95": 201.3,
+            "max": 201.3
+          },
+          "ready": {
+            "n": 6,
+            "min": 155.8,
+            "avg": 188.6,
+            "median": 178,
+            "p95": 248.8,
+            "max": 248.8
+          }
+        }
+      },
+      {
+        "name": "Scorecard",
+        "path": "/scorecard",
+        "first": {
+          "loadMs": 174.7,
+          "readyMs": 211.3,
+          "ttfbMs": 22.1,
+          "transferKB": 7
+        },
+        "repeat": {
+          "load": {
+            "n": 6,
+            "min": 123.2,
+            "avg": 128.3,
+            "median": 125.9,
+            "p95": 141.2,
+            "max": 141.2
+          },
+          "ready": {
+            "n": 6,
+            "min": 157.9,
+            "avg": 179.8,
+            "median": 176.7,
+            "p95": 199.6,
+            "max": 199.6
+          }
+        }
+      },
+      {
+        "name": "Simulation",
+        "path": "/simulation",
+        "first": {
+          "loadMs": 134.7,
+          "readyMs": 174.8,
+          "ttfbMs": 7.7,
+          "transferKB": 6
+        },
+        "repeat": {
+          "load": {
+            "n": 6,
+            "min": 117.2,
+            "avg": 124.7,
+            "median": 118.9,
+            "p95": 139.8,
+            "max": 139.8
+          },
+          "ready": {
+            "n": 6,
+            "min": 158.3,
+            "avg": 174.7,
+            "median": 170.4,
+            "p95": 188.4,
+            "max": 188.4
+          }
+        }
+      }
+    ],
+    "worst": {
+      "page": "Keys",
+      "pageReadyMs": 508.5,
+      "allPagesMaxMs": 508.5,
+      "serverAnalysisMaxMs": 3396.7,
+      "browserUploadMaxMs": 3261.1
+    }
+  },
+  "environment": {
+    "browser": "MicrosoftEdge 157.0.4341.60",
+    "driver": "157.0.4341.60",
+    "selenium": "selenium-webdriver 4.53.0",
+    "node": "v26.13.1",
+    "os": "Windows_NT 10.0.26100 (x64)",
+    "cpu": "11th Gen Intel(R) Core(TM) i5-1135G7 @ 2.40GHz",
+    "cpus": 8,
+    "memoryGB": 7.6,
+    "server": "Next.js production build (next start), same machine",
+    "window": "1440 x 1000, headless"
+  },
+  "finishedAt": "2026-11-19T22:27:02.292Z",
+  "summary": {
+    "total": 19,
+    "passed": 19,
+    "failed": 0
+  }
+}

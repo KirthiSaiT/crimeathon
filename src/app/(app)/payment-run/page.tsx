@@ -15,6 +15,7 @@ import { useAuth } from "@/components/role-provider";
 import { useHoldReleases, useSettings } from "@/lib/supabase/data";
 import { usePendingChanges, type PendingChange } from "@/lib/supabase/vault";
 import { fmtDate, fmtTime } from "@/lib/format";
+import { maxOf } from "@/engine/num";
 import type { BankChange } from "@/lib/types";
 
 const DAY = 86_400_000;
@@ -49,7 +50,7 @@ function PaymentRunView() {
   const [failure, setFailure] = useState<string | null>(null);
 
   const changes: BankChange[] = useMemo(() => (state.status === "ready" ? state.data : []), [state]);
-  const end = useMemo(() => (changes.length ? Math.max(...changes.map((c) => Date.parse(c.time))) : 0), [changes]);
+  const end = useMemo(() => (changes.length ? maxOf(changes.map((c) => Date.parse(c.time))) : 0), [changes]);
   const runs = end && runDays.length ? runsAround(end, runDays) : null;
   const blocked = changes.filter((c) => c.hold && !released.includes(c.id));
   const payable = runs ? changes.filter((c) => Date.parse(c.time) > runs.last && (!c.hold || released.includes(c.id))) : [];

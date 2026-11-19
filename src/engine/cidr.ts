@@ -1,3 +1,5 @@
+import { maxOf, minOf } from "./num";
+
 // IPv4 ranges: enough to say "these computers" as one tight block, and to test whether an address is inside it.
 
 export function ipToInt(ip: string): number | null {
@@ -26,8 +28,8 @@ export function inCidr(ip: string, cidr: string): boolean {
 export function coverCidr(ips: string[]): string | null {
   const nums = ips.map(ipToInt);
   if (nums.length === 0 || nums.some((n) => n === null)) return null;
-  const lo = Math.min(...(nums as number[]));
-  const hi = Math.max(...(nums as number[]));
+  const lo = minOf(nums as number[]);
+  const hi = maxOf(nums as number[]);
   let prefix = 32;
   while (prefix > 0 && Math.floor(lo / 2 ** (32 - prefix)) !== Math.floor(hi / 2 ** (32 - prefix))) prefix -= 1;
   const size = 2 ** (32 - prefix);

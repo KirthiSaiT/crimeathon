@@ -43,3 +43,8 @@ next-env.d.ts
 
 # local tooling
 .claude/settings.local.json
+
+# local production-server log from the Selenium runs
+.prod.log
+
+.e2e/
