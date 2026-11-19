@@ -137,7 +137,7 @@ export function simulate(events: Evt[], findings: Map<string, Finding>, baseline
     return { delay: label, prevented: ids.size, share: share(ids.size), stopsBankChange: Boolean(change && ids.has(change.id)) };
   });
   const oneDay = sens(DAY);
-  row("Detector alert, then revoke the key within 1 day", "Key Guard flags the first off-pattern use; a person revokes the key", oneDay, "Assumes revoking locks the attacker out and the vendor cannot re-issue the same secret.");
+  row("Detector alert, then revoke the key within 1 day", "Warden flags the first off-pattern use; a person revokes the key", oneDay, "Assumes revoking locks the attacker out and the vendor cannot re-issue the same secret.");
 
   const perKey: PerKey[] = [...firstFlag.keys()].map((actor) => {
     const mine = attack.filter((e) => e.actor === actor);
@@ -163,7 +163,7 @@ export function simulate(events: Evt[], findings: Map<string, Finding>, baseline
   const together = new Set([...oneDay]);
   controls.push({
     name: "All together: detect, revoke in 1 day, bank gate",
-    how: "Key Guard as built",
+    how: "Warden as built",
     blocked: together.size,
     share: share(together.size),
     stopsBankChange: "yes",

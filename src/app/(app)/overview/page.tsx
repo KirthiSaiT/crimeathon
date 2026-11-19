@@ -2,7 +2,12 @@
 
 import Link from "next/link";
 import { Suspense } from "react";
+import { motion } from "framer-motion";
 import { Calendar, FileStack, Info, KeyRound, Landmark, ShieldCheck, TriangleAlert } from "lucide-react";
+import { StaggerGroup } from "@/components/aceternity/reveal";
+import { SpotlightCard } from "@/components/aceternity/spotlight-card";
+import { AnimatedCounter } from "@/components/ui/animated-counter";
+import { springDefault } from "@/lib/spring";
 import { Callout, PageShell, Properties, Section } from "@/components/page-shell";
 import { Tag } from "@/components/tag";
 import { TimelineTable } from "@/components/timeline-table";
@@ -22,7 +27,28 @@ function OverviewView() {
       icon={KeyRound}
       title="Stolen keys, one bank change"
       lead="See which machine keys acted off their usual pattern, and hold supplier bank changes that carry no approval."
+      aurora
     >
+      {state.status === "ready" ? (
+        <StaggerGroup className="grid grid-cols-2 gap-3 lg:grid-cols-4">
+          {[
+            { label: "Alert groups flagged", value: state.data[2].filter((a) => a.status !== "ordinary").length, tone: "var(--tp)" },
+            { label: "Ordinary events set aside", value: state.data[2].filter((a) => a.status === "ordinary").length, tone: "var(--fp)" },
+            { label: "Suppliers on hold", value: state.data[1].filter((b) => b.hold).length, tone: "var(--nr)" },
+            { label: "Evidence files read", value: 20, tone: "var(--accent)" },
+          ].map((k) => (
+            <motion.div key={k.label} variants={{ hidden: { opacity: 0, y: 12 }, show: { opacity: 1, y: 0, transition: springDefault } }}>
+              <SpotlightCard spotlightColor={k.tone} className="p-5">
+                <div className="text-4xl font-semibold tracking-[var(--track-display)]" style={{ color: k.tone }}>
+                  <AnimatedCounter value={k.value} />
+                </div>
+                <div className="mt-1 text-sm text-[var(--ink-secondary)]">{k.label}</div>
+              </SpotlightCard>
+            </motion.div>
+          ))}
+        </StaggerGroup>
+      ) : null}
+
       <Properties
         items={[
           { icon: FileStack, label: "Case", value: <span>CR-26-047, Harbor &amp; Finch Freight</span> },
@@ -83,11 +109,11 @@ function OverviewView() {
       <Section title="Hold queue" note="Suppliers whose bank change should be confirmed by a call-back before the next run.">
         {state.status === "loading" ? <TableSkeleton rows={2} /> : null}
         {state.status === "ready" ? (
-          <ul className="flex flex-col">
+          <ul className="divide-y divide-[var(--line)]/70 overflow-hidden rounded-[var(--radius-lg)] border border-[var(--line)] bg-[var(--bg-elevated)] shadow-[var(--shadow-sm)]">
             {state.data[1]
               .filter((b) => b.hold)
               .map((b) => (
-                <li key={b.id} className="flex flex-wrap items-center justify-between gap-3 border-b border-border py-3 text-sm">
+                <li key={b.id} className="flex flex-wrap items-center justify-between gap-3 px-4 py-3.5 text-sm">
                   <span className="min-w-0">
                     <span className="font-medium">{b.vendor}</span>
                     <span className="ml-2 font-mono text-muted-foreground">{b.vendorId}</span>
