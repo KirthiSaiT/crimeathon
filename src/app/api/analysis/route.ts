@@ -2,6 +2,7 @@ import path from "node:path";
 import { connection, NextResponse } from "next/server";
 import { addFile, analyze, emptyParsed, type Analysis } from "@/engine";
 import { loadEvidenceDir } from "@/engine/node";
+import { authorizeCase } from "@/lib/supabase/server";
 
 const evidenceDir = () => process.env.EVIDENCE_DIR ?? path.join(process.cwd(), "evidence");
 let supplied: Analysis | null = null;
@@ -9,6 +10,8 @@ let supplied: Analysis | null = null;
 // GET: run the detector on the supplied evidence folder.
 export async function GET() {
   await connection();
+  const access = await authorizeCase();
+  if (!access.ok) return NextResponse.json({ error: access.message }, { status: access.status });
   try {
     supplied ??= analyze(loadEvidenceDir(evidenceDir()));
     return NextResponse.json(supplied);
@@ -20,6 +23,8 @@ export async function GET() {
 // POST: run it on uploaded logs. Kinds of log that are not uploaded fall back to the supplied evidence.
 export async function POST(request: Request) {
   await connection();
+  const access = await authorizeCase();
+  if (!access.ok) return NextResponse.json({ error: access.message }, { status: access.status });
   try {
     const form = await request.formData();
     const uploaded = emptyParsed();

@@ -1,19 +1,30 @@
 "use client";
 
-import { Suspense } from "react";
+import { Suspense, useState } from "react";
 import { ChevronRight, KeyRound } from "lucide-react";
 import { PageShell, Section } from "@/components/page-shell";
 import { Tag, type TagColor } from "@/components/tag";
 import { Db, DbBody, DbCell, DbHead, DbHeader, DbRow, td, th } from "@/components/db";
 import { ErrorState, PageSkeleton, TableSkeleton } from "@/components/states";
+import { Button } from "@/components/ui/button";
 import { Collapsible, CollapsibleContent, CollapsibleTrigger } from "@/components/ui/collapsible";
 import { useSlice } from "@/components/analysis-provider";
+import { useAuth } from "@/components/role-provider";
+import { useKeyActions, type KeyActionKind } from "@/lib/supabase/data";
 import { fmtDate } from "@/lib/format";
 
 const riskColor: Record<string, TagColor> = { High: "red", Medium: "yellow", Low: "green" };
+const actionLabel: Record<KeyActionKind, string> = { suspend: "Suspend", quarantine: "Quarantine (read only)", rotate: "Rotate", set_expiry: "Set an expiry" };
+const requestable: KeyActionKind[] = ["rotate", "quarantine", "suspend"];
 
 function KeysView() {
   const { state, retry } = useSlice((a) => a.keys);
+  const { status: authStatus, can } = useAuth();
+  const { actions, error: actionError, request, setStatus } = useKeyActions();
+  const [failure, setFailure] = useState<string | null>(null);
+  const staff = can("request_key_action");
+  const approver = can("resolve_key_action");
+  const run = async (job: Promise<string | null>) => setFailure(await job);
 
   return (
     <PageShell
@@ -95,6 +106,37 @@ function KeysView() {
                           </li>
                         ))}
                       </ul>
+                      <div className="flex flex-col gap-2 pb-4 pl-11 text-sm">
+                        {actions
+                          .filter((a) => a.credential_id === k.credential_id)
+                          .map((a) => (
+                            <p key={a.id} className="flex flex-wrap items-center gap-2">
+                              <Tag color={a.status === "done" ? "green" : a.status === "cancelled" ? "gray" : "yellow"}>{a.status === "requested" ? "Requested" : a.status === "done" ? "Done" : "Cancelled"}</Tag>
+                              <span>{actionLabel[a.action]}</span>
+                              {approver && a.status === "requested" ? (
+                                <>
+                                  <Button size="xs" variant="outline" onClick={() => void run(setStatus(a.id, "done"))}>
+                                    Mark done
+                                  </Button>
+                                  <Button size="xs" variant="ghost" onClick={() => void run(setStatus(a.id, "cancelled"))}>
+                                    Cancel
+                                  </Button>
+                                </>
+                              ) : null}
+                            </p>
+                          ))}
+                        {staff ? (
+                          <div className="flex flex-wrap gap-2">
+                            {requestable.map((kind) => (
+                              <Button key={kind} size="sm" variant="outline" onClick={() => void run(request(k.credential_id, kind, ""))}>
+                                Request: {actionLabel[kind].toLowerCase()}
+                              </Button>
+                            ))}
+                          </div>
+                        ) : (
+                          <p className="text-[var(--ink-tertiary)]">{authStatus === "signed-in" ? "Your role cannot request a key action." : "Sign in as an analyst to request a key action."} Warden recommends; a person carries it out.</p>
+                        )}
+                      </div>
                     </CollapsibleContent>
                   </Collapsible>
                 </li>
@@ -102,6 +144,11 @@ function KeysView() {
           </ol>
         ) : null}
       </Section>
+      {failure || actionError ? (
+        <p role="alert" className="text-sm text-[var(--tp)]">
+          {failure ?? actionError}
+        </p>
+      ) : null}
     </PageShell>
   );
 }

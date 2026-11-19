@@ -78,7 +78,28 @@ The detector also holds the two suspicious bank changes (V-0412, no approval, E1
 
 ## Supabase
 
-`supabase/migrations/20261119000000_init.sql` defines saved analysis runs, released holds and role-based access (analyst, approver, viewer) with row-level security. **It has not been applied to a live project, and the app does not call Supabase yet.** The in-app role switcher and the "release hold" action are local to the browser until it is connected.
+`supabase/migrations/20261119000000_init.sql` is applied to the `crimethon` project. It creates:
+
+| Table | Holds |
+|---|---|
+| `profiles` | each user's role: viewer, analyst or approver (new sign-ups start as viewer) |
+| `analysis_runs` | a saved detector run: the result snapshot, its stats and files |
+| `alert_reviews` | an analyst's decision on one alert group |
+| `hold_releases` | a bank change released from hold (approver only, needs a call-back, never edited) |
+| `key_actions` | requests to suspend, quarantine, rotate or set an expiry on a key |
+| `audit_log` | who did what, written by triggers |
+
+Row-level security enforces the roles in the database. It was tested on throwaway users in a rolled-back transaction: a viewer cannot save a run, an analyst cannot release a hold or promote themselves, an approver can release a hold once and only with a call-back, releases cannot be edited or deleted, and a signed-out visitor sees nothing. The Supabase security advisor reports no findings.
+
+**What the app does with it.** Sign in at `/login` (email and password). Signed out, every page is readable and the write actions say why they are off. Signed in:
+
+- an **analyst** can ask for a held bank change to be released, and a different **approver** releases it after a call-back (`hold_requests`, `hold_releases`);
+- an analyst can also record a decision on an alert, request a key action (rotate, quarantine, suspend) and save a run, on the Activity page;
+- the **Activity** page lists saved runs and, for staff, the audit log.
+
+Access is role-based (viewer, analyst, approver, administrator, vendor) with permissions stored in the database and a two-person rule on releasing a held bank change: see `docs/RBAC.md`. The first account created becomes the administrator and assigns roles on the **Access** page. If email confirmation is on (the Supabase default), a new account must click the link in its email before it can sign in.
+
+Key suspension and rotation are **requests recorded in the database**; Warden does not change a key in the vendor's systems.
 
 ## Evidence and documents
 

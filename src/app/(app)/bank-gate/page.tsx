@@ -1,15 +1,17 @@
 "use client";
 
-import { Suspense, useCallback, useMemo, useState, useSyncExternalStore } from "react";
+import { Suspense, useMemo, useState } from "react";
 import { Landmark, Lock } from "lucide-react";
 import { Callout, PageShell, Section } from "@/components/page-shell";
 import { Tag, type TagColor } from "@/components/tag";
 import { Db, DbBody, DbCell, DbHead, DbHeader, DbRow, td, th } from "@/components/db";
 import { EmptyState, ErrorState, PageSkeleton, TableSkeleton } from "@/components/states";
 import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
 import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { Tabs, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { useRole } from "@/components/role-provider";
+import { useAuth } from "@/components/role-provider";
+import { useHoldReleases, useHoldRequests, useSettings } from "@/lib/supabase/data";
 import { useSlice } from "@/components/analysis-provider";
 import { fmtTime } from "@/lib/format";
 import { useQueryState } from "@/lib/use-query-state";
@@ -17,64 +19,46 @@ import type { BankChange, BankStatus } from "@/lib/types";
 
 const statusLabel: Record<BankStatus, string> = { approved: "Approved", missing: "No approval", bulk: "Bulk import", "out-of-sequence": "Out of sequence" };
 const statusColor: Record<BankStatus, TagColor> = { approved: "green", missing: "red", bulk: "blue", "out-of-sequence": "orange" };
-const STORAGE_KEY = "warden-released";
-
-const releaseListeners = new Set<() => void>();
-const subscribeReleased = (cb: () => void) => {
-  releaseListeners.add(cb);
-  window.addEventListener("storage", cb);
-  return () => {
-    releaseListeners.delete(cb);
-    window.removeEventListener("storage", cb);
-  };
-};
-const readReleased = () => {
-  try {
-    return localStorage.getItem(STORAGE_KEY) ?? "[]";
-  } catch {
-    return "[]";
-  }
-};
-
-function useReleased() {
-  const raw = useSyncExternalStore(subscribeReleased, readReleased, () => "[]");
-  const released = useMemo(() => {
-    try {
-      return JSON.parse(raw) as string[];
-    } catch {
-      return [];
-    }
-  }, [raw]);
-  const release = useCallback(
-    (id: string) => {
-      try {
-        localStorage.setItem(STORAGE_KEY, JSON.stringify([...new Set([...released, id])]));
-      } catch {
-        // storage unavailable: the hold stays
-      }
-      releaseListeners.forEach((l) => l());
-    },
-    [released],
-  );
-  return { released, release };
-}
 
 function BankGateView() {
   const { state, retry } = useSlice((a) => a.bank);
-  const { role } = useRole();
-  const { released, release } = useReleased();
+  const { role, can, status: authStatus, configured, user } = useAuth();
+  const { requests, request: requestRelease } = useHoldRequests();
+  const { twoPersonRule } = useSettings();
+  const [mode, setMode] = useState<"release" | "request">("release");
+  const { released, error: releaseError, release } = useHoldReleases();
   const [view, setView] = useQueryState("view", "held");
   const [releasing, setReleasing] = useState<BankChange | null>(null);
   const [confirmed, setConfirmed] = useState(false);
+  const [note, setNote] = useState("");
+  const [saving, setSaving] = useState(false);
+  const [releaseFailure, setReleaseFailure] = useState<string | null>(null);
 
   const changes = useMemo(() => (state.status === "ready" ? state.data : []), [state]);
   const held = changes.filter((c) => c.hold);
   const rows = changes.filter((c) => (view === "held" ? c.hold : view === "missing" ? c.status === "missing" : true));
-  const canRelease = role === "approver";
+  const canRelease = can("release_hold");
+  const canRequest = can("request_release");
+  const requestFor = (id: string) => requests.find((r) => r.change_id === id);
+  const requestedByOther = (id: string) => {
+    const r = requestFor(id);
+    return Boolean(r && r.requested_by !== user?.id);
+  };
 
   const close = () => {
     setReleasing(null);
     setConfirmed(false);
+    setNote("");
+    setReleaseFailure(null);
+  };
+
+  const confirmRelease = async () => {
+    if (!releasing) return;
+    setSaving(true);
+    const failure = mode === "request" ? await requestRelease(releasing.id, note.trim()) : await release(releasing.id, note.trim());
+    setSaving(false);
+    if (failure) setReleaseFailure(failure);
+    else close();
   };
 
   return (
@@ -99,6 +83,7 @@ function BankGateView() {
                       <span className="font-mono text-muted-foreground">{c.vendorId}</span>
                       <Tag color={statusColor[c.status]}>{statusLabel[c.status]}</Tag>
                       {isReleased ? <Tag color="green">Released</Tag> : <Tag color="red">On hold</Tag>}
+                      {!isReleased && requestFor(c.id) ? <Tag color="yellow">Release requested</Tag> : null}
                     </p>
                     <p className="mt-1 text-muted-foreground">
                       <span className="font-mono">{c.oldValue}</span> to <span className="font-mono">{c.newValue}</span>
@@ -110,18 +95,50 @@ function BankGateView() {
                       <Tag mono>{c.evidence}</Tag>
                     </p>
                   </div>
-                  <Button variant="outline" disabled={!canRelease || isReleased} onClick={() => setReleasing(c)}>
-                    {isReleased ? "Hold released" : "Release hold"}
-                  </Button>
+                  {canRequest && !canRelease ? (
+                    <Button
+                      variant="outline"
+                      disabled={isReleased || Boolean(requestFor(c.id))}
+                      onClick={() => {
+                        setMode("request");
+                        setReleasing(c);
+                      }}
+                    >
+                      {isReleased ? "Hold released" : requestFor(c.id) ? "Release requested" : "Request release"}
+                    </Button>
+                  ) : (
+                    <Button
+                      variant="outline"
+                      disabled={!canRelease || isReleased || (twoPersonRule && !requestedByOther(c.id))}
+                      title={canRelease && twoPersonRule && !requestedByOther(c.id) && !isReleased ? "An analyst has to request this release first." : undefined}
+                      onClick={() => {
+                        setMode("release");
+                        setReleasing(c);
+                      }}
+                    >
+                      {isReleased ? "Hold released" : "Release hold"}
+                    </Button>
+                  )}
                 </li>
               );
             })}
           </ul>
         ) : null}
-        {!canRelease ? (
+        {!canRelease && !canRequest ? (
           <Callout icon={Lock}>
-            <p>Only an approver can release a hold. Switch your role in the top bar to try it.</p>
+            <p>
+              {!configured
+                ? "The database is not configured, so holds cannot be released."
+                : authStatus !== "signed-in"
+                  ? "Sign in as an approver to release a hold. Signed-out visitors can read the queue but cannot see which holds were released."
+                  : `Your role (${role}) cannot release or request release of a hold.`}
+            </p>
           </Callout>
+        ) : null}
+        {releaseError ? (
+          <p role="alert" className="text-sm text-[var(--tp)]">
+            Releases could not be loaded: {releaseError}
+          </p>
         ) : null}
       </Section>
 
@@ -178,25 +195,28 @@ function BankGateView() {
       <Dialog open={Boolean(releasing)} onOpenChange={(o) => !o && close()}>
         <DialogContent>
           <DialogHeader>
-            <DialogTitle>Release the hold on {releasing?.vendor}?</DialogTitle>
+            <DialogTitle>{mode === "request" ? "Request release of" : "Release the hold on"} {releasing?.vendor}?</DialogTitle>
             <DialogDescription>Release only after the supplier has confirmed the new account by phone. This lets the change into the next payment run.</DialogDescription>
           </DialogHeader>
           <label className="flex items-start gap-2 text-sm">
             <input type="checkbox" name="callback-confirmed" checked={confirmed} onChange={(e) => setConfirmed(e.target.checked)} className="mt-1 size-4 accent-primary" />
             <span>I phoned the supplier on a number we already trust, and they confirmed the account ending {releasing?.newValue.slice(-4)}.</span>
           </label>
+          <label className="flex flex-col gap-1.5 text-sm">
+            Call-back note (who you spoke to, optional)
+            <Input name="callback-note" value={note} onChange={(e) => setNote(e.target.value)} maxLength={300} />
+          </label>
+          {releaseFailure ? (
+            <p role="alert" className="text-sm text-[var(--tp)]">
+              {releaseFailure}
+            </p>
+          ) : null}
           <DialogFooter>
             <Button variant="outline" onClick={close}>
               Keep on hold
             </Button>
-            <Button
-              disabled={!confirmed}
-              onClick={() => {
-                if (releasing) release(releasing.id);
-                close();
-              }}
-            >
-              Release hold
+            <Button disabled={!confirmed || saving} onClick={() => void confirmRelease()}>
+              {saving ? "Saving" : mode === "request" ? "Send request" : "Release hold"}
             </Button>
           </DialogFooter>
         </DialogContent>

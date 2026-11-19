@@ -1,23 +1,28 @@
 "use client";
 
-import { Suspense, useMemo } from "react";
+import { Suspense, useMemo, useState } from "react";
 import { Search, TriangleAlert } from "lucide-react";
 import { PageShell, Properties } from "@/components/page-shell";
 import { Tag, severityColor, severityLabel, type TagColor } from "@/components/tag";
 import { EvidenceTags } from "@/components/evidence-tags";
 import { Db, DbBody, DbCell, DbHead, DbHeader, DbRow, td, th } from "@/components/db";
 import { EmptyState, ErrorState, PageSkeleton, TableSkeleton } from "@/components/states";
+import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Sheet, SheetContent, SheetDescription, SheetHeader, SheetTitle } from "@/components/ui/sheet";
 import { Tabs, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { useSlice } from "@/components/analysis-provider";
+import { useAuth } from "@/components/role-provider";
+import { alertRef, useAlertReviews, type ReviewDecision } from "@/lib/supabase/data";
 import { fmtRange } from "@/lib/format";
 import { useQueryState } from "@/lib/use-query-state";
 import type { Alert, AlertStatus } from "@/lib/types";
 
 const statusLabel: Record<AlertStatus, string> = { open: "Open", review: "Needs review", ordinary: "Ordinary" };
 const statusColor: Record<AlertStatus, TagColor> = { open: "red", review: "yellow", ordinary: "gray" };
+const decisionLabel: Record<ReviewDecision, string> = { confirmed: "Confirmed misuse", set_aside: "Set aside as ordinary", needs_info: "Needs more information" };
+const decisionColor: Record<ReviewDecision, TagColor> = { confirmed: "red", set_aside: "green", needs_info: "yellow" };
 const severityItems = [
   { value: "all", label: "Any severity" },
   { value: "critical", label: "Critical" },
@@ -28,6 +33,12 @@ const severityItems = [
 
 function AlertsView() {
   const { state, retry } = useSlice((a) => a.alerts);
+  const { status: authStatus, role, configured, can } = useAuth();
+  const { byRef, error: reviewError, review } = useAlertReviews();
+  const [note, setNote] = useState("");
+  const [saving, setSaving] = useState(false);
+  const [reviewFailure, setReviewFailure] = useState<string | null>(null);
+  const canReview = can("review_alert");
   const [view, setView] = useQueryState("view", "flagged");
   const [severity, setSeverity] = useQueryState("severity", "all");
   const [query, setQuery] = useQueryState("q", "");
@@ -55,6 +66,15 @@ function AlertsView() {
     [alerts, view, severity, query],
   );
   const selected: Alert | undefined = alerts.find((a) => a.id === openId);
+
+  const decide = async (a: Alert, decision: ReviewDecision) => {
+    setSaving(true);
+    setReviewFailure(null);
+    const failure = await review(alertRef(a), decision, note.trim());
+    setSaving(false);
+    if (failure) setReviewFailure(failure);
+    else setNote("");
+  };
 
   const clear = () => {
     setSeverity("all");
@@ -136,7 +156,10 @@ function AlertsView() {
                     <DbCell className={`${td} num whitespace-nowrap text-muted-foreground`}>{fmtRange(a.start, a.end)}</DbCell>
                     <DbCell className={`${td} num text-right`}>{a.count}</DbCell>
                     <DbCell className={td}>
-                      <Tag color={statusColor[a.status]}>{statusLabel[a.status]}</Tag>
+                      <span className="flex flex-wrap gap-1">
+                        <Tag color={statusColor[a.status]}>{statusLabel[a.status]}</Tag>
+                        {byRef.get(alertRef(a)) ? <Tag color={decisionColor[byRef.get(alertRef(a))!.decision]}>{decisionLabel[byRef.get(alertRef(a))!.decision]}</Tag> : null}
+                      </span>
                     </DbCell>
                   </DbRow>
                 ))}
@@ -179,6 +202,41 @@ function AlertsView() {
                     <EvidenceTags items={selected.evidence} />
                   </div>
                 </div>
+                {selected.status !== "ordinary" ? (
+                  <div className="flex flex-col gap-3 border-t-2 border-[var(--ink)] pt-4">
+                    <h3>Your review</h3>
+                    {byRef.get(alertRef(selected)) ? (
+                      <p className="text-sm">
+                        <Tag color={decisionColor[byRef.get(alertRef(selected))!.decision]}>{decisionLabel[byRef.get(alertRef(selected))!.decision]}</Tag>
+                        {byRef.get(alertRef(selected))!.note ? <span className="ml-2 text-[var(--ink-secondary)]">{byRef.get(alertRef(selected))!.note}</span> : null}
+                      </p>
+                    ) : null}
+                    {canReview ? (
+                      <>
+                        <label className="flex flex-col gap-1.5 text-sm">
+                          Note (optional)
+                          <Input name="review-note" value={note} onChange={(e) => setNote(e.target.value)} maxLength={300} />
+                        </label>
+                        <div className="flex flex-wrap gap-2">
+                          {(Object.keys(decisionLabel) as ReviewDecision[]).map((d) => (
+                            <Button key={d} variant="outline" size="sm" disabled={saving} onClick={() => void decide(selected, d)}>
+                              {decisionLabel[d]}
+                            </Button>
+                          ))}
+                        </div>
+                      </>
+                    ) : (
+                      <p className="text-sm text-[var(--ink-tertiary)]">
+                        {!configured ? "The database is not configured." : authStatus === "signed-in" ? `Your role (${role}) cannot record a decision.` : "Sign in as an analyst to record a decision."}
+                      </p>
+                    )}
+                    {reviewFailure || reviewError ? (
+                      <p role="alert" className="text-sm text-[var(--tp)]">
+                        {reviewFailure ?? reviewError}
+                      </p>
+                    ) : null}
+                  </div>
+                ) : null}
               </div>
             </>
           ) : null}

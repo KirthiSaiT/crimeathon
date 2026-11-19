@@ -96,4 +96,4 @@ export interface ScoreRow {
   tn: number;
 }
 
-export type Role = "analyst" | "approver" | "viewer";
+export type Role = "viewer" | "analyst" | "approver" | "admin" | "vendor";

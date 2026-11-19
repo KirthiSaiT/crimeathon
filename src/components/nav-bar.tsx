@@ -3,13 +3,11 @@
 import { useState } from "react";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
-import { ChartColumn, ChevronsUpDown, FileText, FlaskConical, History, KeyRound, Landmark, Menu, Moon, Scale, Sun, TriangleAlert, Upload, X } from "lucide-react";
+import { ChartColumn, ClipboardList, FileText, ShieldCheck, FlaskConical, History, KeyRound, Landmark, Menu, Moon, Scale, Sun, TriangleAlert, Upload, X } from "lucide-react";
 import { useTheme } from "@/hooks/use-theme";
-import { DropdownMenu, DropdownMenuContent, DropdownMenuRadioGroup, DropdownMenuRadioItem, DropdownMenuTrigger } from "@/components/ui/dropdown-menu";
-import { roleLabel, useRole } from "@/components/role-provider";
+import { roleLabel, useAuth } from "@/components/role-provider";
 import { cn } from "@/lib/utils";
 import { APP_NAME } from "@/lib/brand";
-import type { Role } from "@/lib/types";
 
 export const navCase = [
   { href: "/overview", label: "Overview", icon: FileText },
@@ -21,7 +19,11 @@ export const navCase = [
   { href: "/scorecard", label: "Scorecard", icon: ChartColumn },
   { href: "/simulation", label: "Simulation", icon: FlaskConical },
 ];
-export const navTools = [{ href: "/upload", label: "Upload logs", icon: Upload }];
+export const navTools = [
+  { href: "/upload", label: "Upload logs", icon: Upload },
+  { href: "/activity", label: "Activity", icon: ClipboardList },
+  { href: "/team", label: "Access", icon: ShieldCheck },
+];
 
 function NavGroup({ label, items, pathname, onNavigate }: { label: string; items: typeof navCase; pathname: string; onNavigate?: () => void }) {
   return (
@@ -56,32 +58,37 @@ function NavGroup({ label, items, pathname, onNavigate }: { label: string; items
 
 function Controls() {
   const { theme, toggle, mounted } = useTheme();
-  const { role, setRole } = useRole();
+  const { status, user, role, configured, signOut } = useAuth();
   return (
-    <div className="flex items-center gap-2">
-      <DropdownMenu>
-        <DropdownMenuTrigger
-          aria-label="Change role"
-          className="flex h-10 min-w-0 flex-1 items-center justify-between gap-2 border border-[var(--line-strong)] bg-[var(--bg-elevated)] px-3 text-sm outline-none hover:border-[var(--ink)] data-popup-open:border-[var(--ink)]"
-        >
-          <span className="truncate">{roleLabel[role]}</span>
-          <ChevronsUpDown className="size-4 shrink-0 text-[var(--ink-tertiary)]" aria-hidden="true" />
-        </DropdownMenuTrigger>
-        <DropdownMenuContent align="start" className="w-56">
-          <DropdownMenuRadioGroup value={role} onValueChange={(v) => setRole(v as Role)}>
-            <DropdownMenuRadioItem value="analyst">Analyst: review alerts</DropdownMenuRadioItem>
-            <DropdownMenuRadioItem value="approver">Approver: release holds</DropdownMenuRadioItem>
-            <DropdownMenuRadioItem value="viewer">Viewer: read only</DropdownMenuRadioItem>
-          </DropdownMenuRadioGroup>
-        </DropdownMenuContent>
-      </DropdownMenu>
+    <div className="flex flex-col gap-2">
+      {configured ? (
+        status === "signed-in" && user ? (
+          <div className="flex flex-col gap-1.5 border border-[var(--line-strong)] bg-[var(--bg-elevated)] p-3 text-sm">
+            <span className="truncate font-mono text-xs" title={user.email}>
+              {user.email}
+            </span>
+            <span className="flex items-center justify-between gap-2">
+              <span className="text-[var(--ink-tertiary)]">{roleLabel[role]}</span>
+              <button type="button" onClick={() => void signOut()} className="underline decoration-[var(--line-strong)] underline-offset-4 hover:decoration-[var(--signal)]">
+                Sign out
+              </button>
+            </span>
+          </div>
+        ) : (
+          <Link href="/login" className="flex h-10 items-center justify-between border border-[var(--line-strong)] bg-[var(--bg-elevated)] px-3 text-sm hover:border-[var(--ink)]">
+            <span>{status === "loading" ? "Checking sign-in" : "Guest, read only"}</span>
+            <span className="underline decoration-[var(--line-strong)] underline-offset-4">Sign in</span>
+          </Link>
+        )
+      ) : null}
       <button
         type="button"
         onClick={toggle}
         aria-label={theme === "dark" ? "Switch to light" : "Switch to dark"}
-        className="grid size-10 shrink-0 place-items-center border border-[var(--line-strong)] bg-[var(--bg-elevated)] outline-none hover:border-[var(--ink)]"
+        className="flex h-10 items-center gap-2 border border-[var(--line-strong)] bg-[var(--bg-elevated)] px-3 text-sm outline-none hover:border-[var(--ink)]"
       >
         {mounted && theme === "dark" ? <Sun className="size-4" aria-hidden="true" /> : <Moon className="size-4" aria-hidden="true" />}
+        {mounted && theme === "dark" ? "Light mode" : "Dark mode"}
       </button>
     </div>
   );
