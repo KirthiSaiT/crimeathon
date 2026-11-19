@@ -11,6 +11,7 @@ import { Input } from "@/components/ui/input";
 import { useAnalysis } from "@/components/analysis-provider";
 import { useAuth } from "@/components/role-provider";
 import { useAuditLog, useRuns } from "@/lib/supabase/data";
+import { useSecretAlerts } from "@/lib/supabase/tickets";
 import { fmtTime } from "@/lib/format";
 
 const actionText: Record<string, string> = {
@@ -20,6 +21,8 @@ const actionText: Record<string, string> = {
   key_insert: "Requested a key action",
   key_update: "Updated a key action",
   release_requested: "Requested a hold release",
+  secret_blocked: "A ticket with a secret was refused",
+  secret_masked: "A ticket with a secret was raised, masked",
   role_changed: "Changed a role",
   setting_changed: "Changed a setting",
 };
@@ -29,6 +32,7 @@ function ActivityView() {
   const { status: authStatus, role, configured, can } = useAuth();
   const { runs, error: runError, save } = useRuns();
   const { rows: audit, error: auditError } = useAuditLog();
+  const secrets = useSecretAlerts();
   const [label, setLabel] = useState("");
   const [saving, setSaving] = useState(false);
   const [failure, setFailure] = useState<string | null>(null);
@@ -59,6 +63,62 @@ function ActivityView() {
         <EmptyState title={authStatus === "loading" ? "Checking sign-in." : "Sign in to see saved runs and the audit log."} body="The database only answers signed-in visitors. The rest of the app stays readable without an account." />
       ) : (
         <>
+          {secrets.allowed ? (
+            <Section title="Secret alerts" note="Someone tried to put a secret into a ticket. The text was not saved. If it was a live vault key, it was replaced at once.">
+              {secrets.error ? <ErrorState what="secret alerts" message={secrets.error} onRetry={() => window.location.reload()} /> : null}
+              {!secrets.error && secrets.alerts === null ? <TableSkeleton rows={2} /> : null}
+              {secrets.alerts && secrets.alerts.length === 0 ? <EmptyState title="No alerts." body="Nobody has tried to put a secret into a ticket." /> : null}
+              {secrets.alerts && secrets.alerts.length > 0 ? (
+                <div className="overflow-x-auto">
+                  <Db className="min-w-[56rem]">
+                    <DbHeader>
+                      <DbRow className="hover:bg-transparent">
+                        <DbHead className={th}>When (UTC)</DbHead>
+                        <DbHead className={th}>Who</DbHead>
+                        <DbHead className={th}>Where</DbHead>
+                        <DbHead className={th}>What it looked like</DbHead>
+                        <DbHead className={th}>Outcome</DbHead>
+                        <DbHead className={th}>Review</DbHead>
+                      </DbRow>
+                    </DbHeader>
+                    <DbBody>
+                      {secrets.alerts.map((a) => (
+                        <DbRow key={a.id} className="hover:bg-[var(--bg-subtle)]">
+                          <DbCell className={`${td} num whitespace-nowrap`}>{fmtTime(a.at)}</DbCell>
+                          <DbCell className={`${td} whitespace-normal`}>{a.actor_email ?? "unknown"}</DbCell>
+                          <DbCell className={`${td} whitespace-normal`}>{a.action === "ticket.create" ? "New ticket" : `Comment on TKT-${a.ticket_id ?? "?"}`}</DbCell>
+                          <DbCell className={`${td} whitespace-normal`}>
+                            <span className="flex flex-wrap gap-1">
+                              {a.patterns.map((p, i) => (
+                                <Tag key={`${p}-${i}`} color="red">
+                                  {p}: <span className="font-mono">{a.previews[i]}</span>
+                                </Tag>
+                              ))}
+                            </span>
+                          </DbCell>
+                          <DbCell className={`${td} whitespace-normal`}>
+                            {a.overridden ? <Tag color="yellow">Raised masked by a reviewer</Tag> : <Tag color="green">Refused</Tag>}
+                            {a.rotated_keys.length > 0 ? <Tag color="blue">Key rotated: {a.rotated_keys.join(", ")}</Tag> : null}
+                            {a.override_reason ? <span className="mt-1 block text-[var(--ink-tertiary)]">{a.override_reason}</span> : null}
+                          </DbCell>
+                          <DbCell className={td}>
+                            {a.status === "open" ? (
+                              <Button size="xs" variant="outline" onClick={async () => setFailure(await secrets.review(a.id, ""))}>
+                                Mark reviewed
+                              </Button>
+                            ) : (
+                              <Tag color="gray">Reviewed</Tag>
+                            )}
+                          </DbCell>
+                        </DbRow>
+                      ))}
+                    </DbBody>
+                  </Db>
+                </div>
+              ) : null}
+            </Section>
+          ) : null}
+
           <Section title="Save this run" note="Stores the current result, whether from the supplied evidence or from the logs you uploaded.">
             <div className="flex max-w-xl flex-wrap items-end gap-3">
               <label className="flex min-w-56 flex-1 flex-col gap-1.5 text-sm">

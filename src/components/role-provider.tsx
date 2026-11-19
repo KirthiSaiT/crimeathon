@@ -23,7 +23,10 @@ export type Permission =
   | "manage_roles"
   | "manage_settings"
   | "manage_keys"
-  | "quarantine_key";
+  | "quarantine_key"
+  | "raise_ticket"
+  | "review_secret_alerts"
+  | "override_secret_block";
 
 type AuthStatus = "loading" | "signed-out" | "signed-in";
 
@@ -179,4 +182,7 @@ export const permissionLabel: Record<string, string> = {
   manage_settings: "Change the two-person rule",
   manage_keys: "Create, rotate, time and revoke keys in the vault",
   quarantine_key: "Put a key into read-only quarantine",
+  raise_ticket: "Raise support tickets and comment on them",
+  review_secret_alerts: "See and review alerts about secrets in tickets",
+  override_secret_block: "Raise a ticket anyway, with the secret masked",
 };

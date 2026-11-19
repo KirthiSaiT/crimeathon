@@ -3,9 +3,10 @@
 import { useState } from "react";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
-import { CalendarClock, ChartColumn, ClipboardList, FileText, ShieldCheck, Vault, FlaskConical, History, KeyRound, Landmark, Menu, Moon, Scale, Sun, TriangleAlert, Upload, X } from "lucide-react";
+import { CalendarClock, ChartColumn, ClipboardList, LifeBuoy, FileText, ShieldCheck, Vault, FlaskConical, History, KeyRound, Landmark, Menu, Moon, Scale, Sun, TriangleAlert, Upload, X } from "lucide-react";
 import { useTheme } from "@/hooks/use-theme";
 import { useAnalysis } from "@/components/analysis-provider";
+import { useOpenSecretAlerts } from "@/lib/supabase/tickets";
 import { roleLabel, useAuth } from "@/components/role-provider";
 import { cn } from "@/lib/utils";
 import { APP_NAME } from "@/lib/brand";
@@ -24,11 +25,12 @@ export const navCase = [
 ];
 export const navTools = [
   { href: "/upload", label: "Upload logs", icon: Upload },
+  { href: "/tickets", label: "Support tickets", icon: LifeBuoy },
   { href: "/activity", label: "Activity", icon: ClipboardList },
   { href: "/team", label: "Access", icon: ShieldCheck },
 ];
 
-function NavGroup({ label, items, pathname, onNavigate }: { label: string; items: typeof navCase; pathname: string; onNavigate?: () => void }) {
+function NavGroup({ label, items, pathname, onNavigate, badges = {} }: { label: string; items: typeof navCase; pathname: string; onNavigate?: () => void; badges?: Record<string, number> }) {
   return (
     <div>
       <p className="px-3 pb-1.5 text-xs text-[var(--ink-tertiary)]">{label}</p>
@@ -50,6 +52,7 @@ function NavGroup({ label, items, pathname, onNavigate }: { label: string; items
               >
                 <item.icon className="size-4 shrink-0" aria-hidden="true" />
                 {item.label}
+                {badges[item.href] ? <span className="num ml-auto border border-[var(--tp)] bg-[var(--tp-subtle)] px-1.5 text-xs text-[var(--tp)]" aria-label={`${badges[item.href]} open alerts`}>{badges[item.href]}</span> : null}
               </Link>
             </li>
           );
@@ -111,6 +114,8 @@ function Wordmark() {
 // A sidebar from 60rem up (nine destinations earn one); a top bar with a menu below it.
 export function NavBar() {
   const pathname = usePathname();
+  const openAlerts = useOpenSecretAlerts();
+  const badges = { "/activity": openAlerts };
   const [open, setOpen] = useState(false);
 
   return (
@@ -121,7 +126,7 @@ export function NavBar() {
         </div>
         <nav aria-label={`${APP_NAME} sections`} className="flex flex-1 flex-col gap-6">
           <NavGroup label="Case" items={navCase} pathname={pathname} />
-          <NavGroup label="Tools" items={navTools} pathname={pathname} />
+          <NavGroup label="Tools" items={navTools} pathname={pathname} badges={badges} />
         </nav>
         <div className="px-3">
           <Controls />
@@ -146,7 +151,7 @@ export function NavBar() {
           <div id="mobile-nav" className="flex max-h-[calc(100vh-3.5rem)] flex-col gap-5 overflow-y-auto border-t border-[var(--line)] py-4">
             <nav aria-label={`${APP_NAME} sections`} className="flex flex-col gap-5">
               <NavGroup label="Case" items={navCase} pathname={pathname} onNavigate={() => setOpen(false)} />
-              <NavGroup label="Tools" items={navTools} pathname={pathname} onNavigate={() => setOpen(false)} />
+              <NavGroup label="Tools" items={navTools} pathname={pathname} badges={badges} onNavigate={() => setOpen(false)} />
             </nav>
             <div className="px-4">
               <Controls />
