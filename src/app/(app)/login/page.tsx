@@ -1,7 +1,7 @@
 "use client";
 
 import { Suspense, useState } from "react";
-import { useRouter } from "next/navigation";
+import { useRouter, useSearchParams } from "next/navigation";
 import { LogIn } from "lucide-react";
 import { Callout, PageShell } from "@/components/page-shell";
 import { Button } from "@/components/ui/button";
@@ -10,6 +10,7 @@ import { roleLabel, useAuth } from "@/components/role-provider";
 
 function LoginView() {
   const router = useRouter();
+  const [mode, setMode] = useState<"in" | "up">(useSearchParams().get("mode") === "up" ? "up" : "in");
   const { status, user, role, configured, idleSignedOut, signIn, signUp, signOut } = useAuth();
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
@@ -17,7 +18,7 @@ function LoginView() {
   const [error, setError] = useState<string | null>(null);
   const [notice, setNotice] = useState<string | null>(null);
 
-  const submit = async (mode: "in" | "up") => {
+  const submit = async () => {
     setBusy(true);
     setError(null);
     setNotice(null);
@@ -35,7 +36,7 @@ function LoginView() {
   };
 
   return (
-    <PageShell icon={LogIn} title="Sign in" lead="Signing in lets you save runs, review alerts and, as an approver, release a held bank change. Without it you can read everything.">
+    <PageShell icon={LogIn} title={mode === "up" ? "Create an account" : "Sign in"} lead="Signing in lets you save runs, review alerts and, as an approver, release a held bank change. Without it you can read everything.">
       {!configured ? (
         <Callout icon={LogIn}>
           <p>The database is not configured, so sign-in is off. Set NEXT_PUBLIC_SUPABASE_URL and NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY (see .env.example).</p>
@@ -59,7 +60,7 @@ function LoginView() {
           className="flex max-w-md flex-col gap-4"
           onSubmit={(e) => {
             e.preventDefault();
-            void submit("in");
+            void submit();
           }}
         >
           <label className="flex flex-col gap-1.5 text-sm">
@@ -68,7 +69,7 @@ function LoginView() {
           </label>
           <label className="flex flex-col gap-1.5 text-sm">
             Password
-            <Input name="password" type="password" autoComplete="current-password" required minLength={6} value={password} onChange={(e) => setPassword(e.target.value)} />
+            <Input name="password" type="password" autoComplete={mode === "up" ? "new-password" : "current-password"} required minLength={6} value={password} onChange={(e) => setPassword(e.target.value)} />
           </label>
           {idleSignedOut ? <p className="text-sm text-[var(--ink-secondary)]">You were signed out after a period of inactivity.</p> : null}
           {error ? (
@@ -78,11 +79,20 @@ function LoginView() {
           ) : null}
           {notice ? <p className="text-sm text-[var(--fp)]">{notice}</p> : null}
           <div className="flex flex-wrap gap-2">
-            <Button type="submit" disabled={busy || !email || !password}>
-              {busy ? "Working" : "Sign in"}
+            <Button type="submit" disabled={busy || !email || !password || (mode === "up" && password.length < 6)}>
+              {busy ? "Working" : mode === "up" ? "Create account" : "Sign in"}
             </Button>
-            <Button type="button" variant="outline" disabled={busy || !email || password.length < 6} onClick={() => void submit("up")}>
-              Create account
+            <Button
+              type="button"
+              variant="outline"
+              disabled={busy}
+              onClick={() => {
+                setMode(mode === "up" ? "in" : "up");
+                setError(null);
+                setNotice(null);
+              }}
+            >
+              {mode === "up" ? "I already have an account" : "Create an account"}
             </Button>
           </div>
         </form>

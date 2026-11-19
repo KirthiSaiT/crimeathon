@@ -5,19 +5,24 @@ import { cn } from "@/lib/utils";
 export function PageShell({
   title,
   lead,
+  actions,
   children,
 }: {
   icon?: LucideIcon;
   title: string;
   lead?: string;
   aurora?: boolean;
+  actions?: React.ReactNode;
   children: React.ReactNode;
 }) {
   return (
     <div className="mx-auto w-full max-w-(--page-width) min-w-0 px-(--gutter) pt-10 pb-24">
-      <header className="border-b-2 border-[var(--ink)] pb-6">
-        <h1>{title}</h1>
-        {lead ? <p className="lead mt-3 text-[var(--ink-secondary)]">{lead}</p> : null}
+      <header className="flex flex-wrap items-start justify-between gap-x-6 gap-y-4 border-b-2 border-[var(--ink)] pb-6">
+        <div className="min-w-0">
+          <h1>{title}</h1>
+          {lead ? <p className="lead mt-3 text-[var(--ink-secondary)]">{lead}</p> : null}
+        </div>
+        {actions}
       </header>
       <div className="mt-8 flex min-w-0 flex-col gap-12">{children}</div>
     </div>

@@ -56,3 +56,6 @@
 
 /* The upload field is a native input inside a label; the label is the control. */
 .ws .visually-hidden { position: absolute; width: 1px; height: 1px; overflow: hidden; clip-path: inset(50%); white-space: nowrap; }
+
+/* A link styled as the primary button: the global "a { color: inherit }" is unlayered and would beat the utility class. */
+.ws .button-default { color: var(--accent-ink); text-decoration: none; }
