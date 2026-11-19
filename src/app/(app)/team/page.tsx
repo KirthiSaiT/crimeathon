@@ -6,24 +6,12 @@ import { PageShell, Section } from "@/components/page-shell";
 import { Tag } from "@/components/tag";
 import { Db, DbBody, DbCell, DbHead, DbHeader, DbRow, td, th } from "@/components/db";
 import { EmptyState, ErrorState, PageSkeleton, TableSkeleton } from "@/components/states";
-import { IDLE_MINUTES, roleLabel, roleSummary, useAuth } from "@/components/role-provider";
+import { IDLE_MINUTES, permissionLabel, roleLabel, roleSummary, useAuth } from "@/components/role-provider";
 import { usePermissionMatrix, useSettings, useTeam } from "@/lib/supabase/data";
 import { fmtDate } from "@/lib/format";
 import type { Role } from "@/lib/types";
 
 const roles: Role[] = ["viewer", "analyst", "approver", "admin", "vendor"];
-const permissionLabel: Record<string, string> = {
-  view_case: "Read the case data",
-  save_run: "Save a detector run",
-  review_alert: "Record a decision on an alert",
-  request_key_action: "Request a key action",
-  resolve_key_action: "Close a key action request",
-  request_release: "Ask for a held bank change to be released",
-  release_hold: "Release a held bank change",
-  view_audit: "Read the audit log",
-  manage_roles: "Assign roles",
-  manage_settings: "Change the two-person rule",
-};
 
 function TeamView() {
   const { status, user, role, configured, can } = useAuth();

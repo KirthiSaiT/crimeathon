@@ -3,7 +3,6 @@
 import Link from "next/link";
 import { Suspense } from "react";
 import { Calendar, FileStack, Info, KeyRound, Landmark, ShieldCheck, TriangleAlert } from "lucide-react";
-import { AccountActions } from "@/components/account-actions";
 import { Callout, PageShell, Properties, Section } from "@/components/page-shell";
 import { Tag } from "@/components/tag";
 import { TimelineTable } from "@/components/timeline-table";
@@ -27,7 +26,6 @@ function OverviewView() {
       icon={KeyRound}
       title="Stolen keys, one bank change"
       lead="See which machine keys acted off their usual pattern, and hold supplier bank changes that carry no approval."
-      actions={<AccountActions />}
     >
       {state.status === "ready" ? (
         <dl className="ledger">

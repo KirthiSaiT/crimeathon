@@ -7,6 +7,7 @@ import type { Role } from "@/lib/types";
 export interface AccountUser {
   id: string;
   email: string;
+  createdAt: string | null;
 }
 
 // What a permission lets you do. The matrix itself lives in the database (role_permissions).
@@ -29,6 +30,7 @@ interface AuthContextValue {
   user: AccountUser | null;
   role: Role;
   can: (permission: Permission) => boolean;
+  permissions: string[];
   configured: boolean;
   // Set when the session ended because the visitor was idle, so the sign-in page can say so.
   idleSignedOut: boolean;
@@ -42,6 +44,7 @@ const AuthContext = createContext<AuthContextValue>({
   user: null,
   role: "viewer",
   can: () => false,
+  permissions: [],
   configured: false,
   idleSignedOut: false,
   signIn: async () => "Sign-in is not configured.",
@@ -68,7 +71,7 @@ export function RoleProvider({ children }: { children: React.ReactNode }) {
     if (!supabase) return;
     let live = true;
 
-    const apply = async (session: { user: { id: string; email?: string } } | null) => {
+    const apply = async (session: { user: { id: string; email?: string; created_at?: string } } | null) => {
       if (!live) return;
       if (!session) {
         setUser(null);
@@ -81,7 +84,7 @@ export function RoleProvider({ children }: { children: React.ReactNode }) {
       const nextRole: Role = isRole(profile?.role) ? profile.role : "viewer";
       const { data: perms } = await supabase.from("role_permissions").select("permission").eq("role", nextRole);
       if (!live) return;
-      setUser({ id: session.user.id, email: session.user.email ?? "" });
+      setUser({ id: session.user.id, email: session.user.email ?? "", createdAt: session.user.created_at ?? null });
       setRole(nextRole);
       setPermissions(new Set((perms ?? []).map((p: { permission: string }) => p.permission)));
       setStatus("signed-in");
@@ -140,8 +143,8 @@ export function RoleProvider({ children }: { children: React.ReactNode }) {
   const can = useCallback((permission: Permission) => status === "signed-in" && permissions.has(permission), [status, permissions]);
 
   const value = useMemo(
-    () => ({ status, user, role, can, configured: supabaseConfigured, idleSignedOut, signIn, signUp, signOut }),
-    [status, user, role, can, idleSignedOut, signIn, signUp, signOut],
+    () => ({ status, user, role, can, permissions: [...permissions].sort(), configured: supabaseConfigured, idleSignedOut, signIn, signUp, signOut }),
+    [status, user, role, can, permissions, idleSignedOut, signIn, signUp, signOut],
   );
   return <AuthContext.Provider value={value}>{children}</AuthContext.Provider>;
 }
@@ -158,4 +161,18 @@ export const roleSummary: Record<Role, string> = {
   approver: "Releases a held bank change after a call-back, and closes key action requests.",
   admin: "Assigns roles and sets the two-person rule. Cannot move money.",
   vendor: "A supplier's account. Sees none of the case data.",
+};
+
+// What each permission lets a person do, in plain words.
+export const permissionLabel: Record<string, string> = {
+  view_case: "Read the case data",
+  save_run: "Save a detector run",
+  review_alert: "Record a decision on an alert",
+  request_key_action: "Request a key action",
+  resolve_key_action: "Close a key action request",
+  request_release: "Ask for a held bank change to be released",
+  release_hold: "Release a held bank change",
+  view_audit: "Read the audit log",
+  manage_roles: "Assign roles",
+  manage_settings: "Change the two-person rule",
 };
