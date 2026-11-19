@@ -3,7 +3,7 @@
 import { useState } from "react";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
-import { ChartColumn, ClipboardList, FileText, ShieldCheck, FlaskConical, History, KeyRound, Landmark, Menu, Moon, Scale, Sun, TriangleAlert, Upload, X } from "lucide-react";
+import { ChartColumn, ClipboardList, FileText, ShieldCheck, Vault, FlaskConical, History, KeyRound, Landmark, Menu, Moon, Scale, Sun, TriangleAlert, Upload, X } from "lucide-react";
 import { useTheme } from "@/hooks/use-theme";
 import { roleLabel, useAuth } from "@/components/role-provider";
 import { cn } from "@/lib/utils";
@@ -13,6 +13,7 @@ export const navCase = [
   { href: "/overview", label: "Overview", icon: FileText },
   { href: "/alerts", label: "Alerts", icon: TriangleAlert },
   { href: "/keys", label: "Keys", icon: KeyRound },
+  { href: "/vault", label: "Key vault", icon: Vault },
   { href: "/bank-gate", label: "Bank gate", icon: Landmark },
   { href: "/claims", label: "Vendor claims", icon: Scale },
   { href: "/timeline", label: "Timeline", icon: History },

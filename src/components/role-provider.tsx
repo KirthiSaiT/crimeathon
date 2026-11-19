@@ -21,7 +21,9 @@ export type Permission =
   | "release_hold"
   | "view_audit"
   | "manage_roles"
-  | "manage_settings";
+  | "manage_settings"
+  | "manage_keys"
+  | "quarantine_key";
 
 type AuthStatus = "loading" | "signed-out" | "signed-in";
 
@@ -175,4 +177,6 @@ export const permissionLabel: Record<string, string> = {
   view_audit: "Read the audit log",
   manage_roles: "Assign roles",
   manage_settings: "Change the two-person rule",
+  manage_keys: "Create, rotate, time and revoke keys in the vault",
+  quarantine_key: "Put a key into read-only quarantine",
 };

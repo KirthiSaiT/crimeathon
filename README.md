@@ -99,7 +99,7 @@ Row-level security enforces the roles in the database. It was tested on throwawa
 
 Access is role-based (viewer, analyst, approver, administrator, vendor) with permissions stored in the database and a two-person rule on releasing a held bank change: see `docs/RBAC.md`. The first account created becomes the administrator and assigns roles on the **Access** page. If email confirmation is on (the Supabase default), a new account must click the link in its email before it can sign in.
 
-Key suspension and rotation are **requests recorded in the database**; Warden does not change a key in the vendor's systems.
+Key suspension and rotation of the *real* keys are **requests recorded in the database**; Warden does not change a key in the vendor's systems. The **Key vault** page is a simulation of short-lived keys: three made-up systems (LedgerOne, HelpDeskr, BlueVault) whose keys rotate on a timer an administrator sets, with a grace window, read-only quarantine and an activity log. See `docs/KEY_VAULT.md`.
 
 ## Evidence and documents
 
