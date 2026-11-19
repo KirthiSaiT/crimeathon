@@ -10,7 +10,7 @@ import type { Alert, Role } from "@/lib/types";
 // Alert numbers (A-01) change between runs, so a review is keyed by the key, the title and the start time.
 export const alertRef = (a: Alert) => `${a.key}|${a.title}|${a.start}`;
 
-export type KeyActionKind = "suspend" | "quarantine" | "rotate" | "set_expiry";
+export type KeyActionKind = "suspend" | "quarantine" | "rotate" | "set_expiry" | "narrow_scope" | "set_range";
 export type ReviewDecision = "confirmed" | "set_aside" | "needs_info";
 
 export interface ReleaseRow {

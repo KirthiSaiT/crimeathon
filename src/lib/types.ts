@@ -54,9 +54,19 @@ export interface KeyRecord extends RegisterKey {
   risk: "High" | "Medium" | "Low";
   findings: { text: string; policy: string }[];
   inIncident: boolean;
+  advice?: KeyAdvice;
 }
 
-export type BankStatus = "approved" | "missing" | "bulk" | "out-of-sequence";
+// What a key actually did before the incident, and the narrower key that would have done the same job.
+export interface KeyAdvice {
+  used: string[];
+  recommendedScope: string;
+  hosts: string[];
+  recommendedRange: string | null;
+  note: string;
+}
+
+export type BankStatus = "approved" | "missing" | "bulk" | "out-of-sequence" | "api-channel";
 
 export interface BankChange {
   id: string;
@@ -74,6 +84,8 @@ export interface BankChange {
   status: BankStatus;
   why: string;
   hold: boolean;
+  // Days between a change to this supplier's call-back contact (phone or email) and this bank change, when the contact changed first.
+  contactChangedDays?: number;
 }
 
 export type Verdict = "false" | "unproven" | "true";

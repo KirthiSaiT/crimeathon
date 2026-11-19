@@ -21,7 +21,7 @@ Open http://localhost:3000. The app reads the evidence files in `./evidence` (th
 |---|---|
 | `npm run dev` | The web app with live results |
 | `npm run analyze` | The same detector on the command line. `npm run analyze -- <folder>` for another folder, `-- --json` for the full result |
-| `npm test` | 24 tests on the supplied logs, altered copies, uploads and the simulation |
+| `npm test` | 32 tests on the supplied logs, altered copies, uploads, the simulation and the bank rules |
 | `npm run simulate` | Replay the attack through the defense: when each layer fires, how fast the response must be, which single controls would have stopped the bank change. See `docs/Solution_Defense.md` |
 | `npm run typecheck` | TypeScript check |
 
@@ -99,7 +99,7 @@ Row-level security enforces the roles in the database. It was tested on throwawa
 
 Access is role-based (viewer, analyst, approver, administrator, vendor) with permissions stored in the database and a two-person rule on releasing a held bank change: see `docs/RBAC.md`. The first account created becomes the administrator and assigns roles on the **Access** page. If email confirmation is on (the Supabase default), a new account must click the link in its email before it can sign in.
 
-Key suspension and rotation of the *real* keys are **requests recorded in the database**; Warden does not change a key in the vendor's systems. The **Key vault** page is a simulation of short-lived keys: three made-up systems (LedgerOne, HelpDeskr, BlueVault) whose keys rotate on a timer an administrator sets, with a grace window, read-only quarantine and an activity log. See `docs/KEY_VAULT.md`.
+Key suspension and rotation of the *real* keys are **requests recorded in the database**; Warden does not change a key in the vendor's systems. The **Key vault** page is a simulation of short-lived keys: three made-up systems (LedgerOne, HelpDeskr, BlueVault) whose keys rotate on a timer an administrator sets, with a grace window, read-only quarantine and an activity log. The vault also enforces address limits, cuts a key off automatically on a critical event, splits a broad key into narrow ones, holds any bank change a key asks for, and has a one-click attack replay. See `docs/KEY_VAULT.md`.
 
 ## Evidence and documents
 

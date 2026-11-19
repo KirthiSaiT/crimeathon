@@ -2,6 +2,8 @@ import path from "node:path";
 import { describe, expect, it } from "vitest";
 import { addFile, analyze, emptyParsed, type Analysis, type Parsed } from "../src/engine";
 import { buildBaseline } from "../src/engine/baseline";
+import { checkBank } from "../src/engine/bank";
+import { coverCidr, inCidr } from "../src/engine/cidr";
 import { loadEvidenceDir } from "../src/engine/node";
 import { defaultOptions } from "../src/engine/types";
 
@@ -166,5 +168,72 @@ describe("the defense replayed against the attack", () => {
 
   it("says plainly what it cannot simulate", () => {
     expect(control("Keys expire").stopsBankChange).toBe("cannot tell");
+  });
+});
+
+describe("address ranges", () => {
+  it("covers a key's computers with the tightest block and leaves the build computer outside it", () => {
+    const hosts = ["10.20.4.11", "10.20.4.12", "10.20.4.13", "10.20.4.14", "10.20.4.15", "10.20.4.16"];
+    expect(coverCidr(hosts)).toBe("10.20.4.0/27");
+    expect(inCidr("10.20.4.12", "10.20.4.0/27")).toBe(true);
+    expect(inCidr("10.20.4.77", "10.20.4.0/27")).toBe(false);
+    expect(inCidr("10.20.4.77", "10.20.4.0/24")).toBe(true); // the loose range the policy asks for lets it in
+    expect(coverCidr(["172.16.9.40"])).toBe("172.16.9.40/32");
+    expect(coverCidr([])).toBeNull();
+  });
+});
+
+describe("narrower keys, advised from what each key did", () => {
+  it("shows the finance key did four things from six computers, not everything in every module", () => {
+    const k = result.keys.find((x) => x.credential_id === "key-tb-07");
+    expect(k?.advice?.used).toContain("Read vendors");
+    expect(k?.advice?.used.some((u) => /bank/i.test(u))).toBe(false);
+    expect(k?.advice?.hosts).toHaveLength(6);
+    expect(k?.advice?.recommendedRange).toBe("10.20.4.0/27");
+  });
+
+  it("gives the over-privileged help-desk and storage keys a one-thing scope", () => {
+    expect(result.keys.find((x) => x.credential_id === "tb-sync-svc")?.advice?.used).toHaveLength(1);
+    expect(result.keys.find((x) => x.credential_id === "bvk-7f3a")?.advice?.recommendedRange).toBe("172.16.9.40/32");
+  });
+
+  it("is simulated as two controls that each stop the bank change", () => {
+    const controls = result.simulation!.controls;
+    const block = controls.find((c) => /tightest block/.test(c.name));
+    const narrow = controls.find((c) => /Narrow each key/.test(c.name));
+    expect(block?.stopsBankChange).toBe("yes");
+    expect(block?.share).toBeGreaterThan(95);
+    expect(narrow?.stopsBankChange).toBe("yes");
+    expect(controls.find((c) => /Layered/.test(c.name))?.stopsBankChange).toBe("yes");
+  });
+});
+
+describe("guarding the money", () => {
+  it("holds only the two suspicious changes on the supplied logs, with the extra rules on", () => {
+    expect(result.bank.filter((b) => b.hold).map((b) => b.vendorId).sort()).toEqual(["V-0233", "V-0412"]);
+  });
+
+  it("tags the changes whose call-back contact changed first, without holding the ones that are well approved", () => {
+    const tagged = result.bank.filter((b) => b.contactChangedDays !== undefined);
+    expect(tagged.length).toBeGreaterThan(0);
+    expect(tagged.every((b) => !b.hold)).toBe(true);
+  });
+
+  it("holds a change made through the API even when it carries an approval reference", () => {
+    const changes = parsed.changes.map((c) => (c.vendorId === "V-0412" && c.field === "bank_account" ? { ...c, approvalRef: "APR-9999" } : c));
+    const v = checkBank(changes).bank.find((b) => b.vendorId === "V-0412");
+    expect(v?.status).toBe("api-channel");
+    expect(v?.hold).toBe(true);
+  });
+
+  it("holds a weakly approved change when the supplier's contact was changed just before it", () => {
+    const old = parsed.changes.find((c) => c.field === "bank_account" && c.approvalRef === "" && c.channel !== "API");
+    expect(old).toBeDefined();
+    const before = checkBank(parsed.changes).bank.find((b) => b.id === old!.id);
+    expect(before?.hold).toBe(false);
+    const contact = { ...old!, id: "synthetic-contact", field: "contact_phone", oldValue: "(previous)", newValue: "(updated)", approvalRef: "", ts: old!.ts - 3 * 86_400_000 };
+    const after = checkBank([...parsed.changes, contact]).bank.find((b) => b.id === old!.id);
+    expect(after?.hold).toBe(true);
+    expect(after?.contactChangedDays).toBe(3);
   });
 });

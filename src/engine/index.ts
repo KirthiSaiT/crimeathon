@@ -41,7 +41,7 @@ export function analyze(input: Parsed, ctx: Context = defaultContext, options: P
   const alerts = all.map((a) => ({ ...a, id: a.status === "ordinary" ? `O-${String(++no).padStart(2, "0")}` : `A-${String(++nf).padStart(2, "0")}` }));
 
   const flaggedActors = new Set(parsed.events.filter((e) => findings.get(e.id) && !findings.get(e.id)!.ordinary && e.actorKind === "integration" && e.system !== "Network link").map((e) => e.actor));
-  const keys = parsed.register ? assessKeys(parsed.register, flaggedActors) : [];
+  const keys = parsed.register ? assessKeys(parsed.register, flaggedActors, baseline.summary) : [];
   const claims = verifyClaims(ctx.claims, parsed.events, findings);
 
   const live: TimelineEvent[] = alerts

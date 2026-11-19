@@ -1,4 +1,5 @@
 import type { BankChange } from "../lib/types";
+import { coverCidr, inCidr } from "./cidr";
 import type { Baseline, Context, Evt, Finding } from "./types";
 
 const HOUR = 3_600_000;
@@ -98,6 +99,26 @@ export function simulate(events: Evt[], findings: Map<string, Finding>, baseline
     "Effective, but brittle: any new sync computer breaks the real service until someone edits the list. An attacker on a listed computer still passes.",
   );
 
+  // The tightest block around each key's usual computers: less brittle than an exact list.
+  const cover = new Map<string, string | null>();
+  for (const [actor, hosts] of baseline.hosts) cover.set(actor, hosts.size ? coverCidr([...hosts]) : null);
+  const outsideBlock = new Set(attack.filter((e) => e.source !== "" && cover.get(e.actor) && !inCidr(e.source, cover.get(e.actor)!)).map((e) => e.id));
+  row(
+    "Address limit as the tightest block around each key's own computers",
+    "Allow only the smallest address block that holds each key's usual computers",
+    outsideBlock,
+    change && outsideBlock.has(change.id)
+      ? `Survives a new sync computer next to the others. The build computer ${change.source} sits outside the block, so the bank change is refused.`
+      : "Survives a new sync computer next to the others. An attacker on a computer inside the block still passes.",
+  );
+  const offProfile = new Set(attack.filter((e) => baseline.sigs.get(e.actor) && !baseline.sigs.get(e.actor)!.has(e.sig)).map((e) => e.id));
+  row(
+    "Narrow each key to the actions it used",
+    "Allow only the actions each key performed before the incident",
+    offProfile,
+    "Needs no address list and survives an attacker on a real sync computer. A rare but legitimate action could look unused, so it runs in alert-first mode before it enforces.",
+  );
+
   const leak = ctx.events.find((e) => e.kind === "leak" && /pasted/i.test(e.title));
   const leakKey = leak ? /\b(bvk-[0-9a-f]+)\b/.exec(leak.title)?.[1] : undefined;
   if (leak && leakKey) {
@@ -168,6 +189,16 @@ export function simulate(events: Evt[], findings: Map<string, Finding>, baseline
     share: share(together.size),
     stopsBankChange: "yes",
     note: "Two independent layers each stop the bank change: the access is cut early, and the payout is held even if it were not.",
+  });
+
+  const layered = new Set([...oneDay, ...outsideBlock, ...offProfile]);
+  controls.push({
+    name: "Layered: tight address block, narrow actions, revoke in 1 day, bank gate",
+    how: "Every layer on at once, each independent of the others",
+    blocked: layered.size,
+    share: share(layered.size),
+    stopsBankChange: "yes",
+    note: "No single layer has to be perfect. The block and the narrow actions refuse most of the attack outright; whatever gets through is cut off within a day, and the payout is held regardless.",
   });
 
   return {

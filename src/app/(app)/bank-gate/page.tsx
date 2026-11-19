@@ -17,8 +17,8 @@ import { fmtTime } from "@/lib/format";
 import { useQueryState } from "@/lib/use-query-state";
 import type { BankChange, BankStatus } from "@/lib/types";
 
-const statusLabel: Record<BankStatus, string> = { approved: "Approved", missing: "No approval", bulk: "Bulk import", "out-of-sequence": "Out of sequence" };
-const statusColor: Record<BankStatus, TagColor> = { approved: "green", missing: "red", bulk: "blue", "out-of-sequence": "orange" };
+const statusLabel: Record<BankStatus, string> = { approved: "Approved", missing: "No approval", bulk: "Bulk import", "out-of-sequence": "Out of sequence", "api-channel": "Made by a key" };
+const statusColor: Record<BankStatus, TagColor> = { approved: "green", missing: "red", bulk: "blue", "out-of-sequence": "orange", "api-channel": "red" };
 
 function BankGateView() {
   const { state, retry } = useSlice((a) => a.bank);
@@ -82,6 +82,7 @@ function BankGateView() {
                       <span className="font-medium">{c.vendor}</span>
                       <span className="font-mono text-muted-foreground">{c.vendorId}</span>
                       <Tag color={statusColor[c.status]}>{statusLabel[c.status]}</Tag>
+                      {c.contactChangedDays !== undefined ? <Tag color="yellow">Call-back contact changed {c.contactChangedDays} days earlier</Tag> : null}
                       {isReleased ? <Tag color="green">Released</Tag> : <Tag color="red">On hold</Tag>}
                       {!isReleased && requestFor(c.id) ? <Tag color="yellow">Release requested</Tag> : null}
                     </p>
@@ -183,6 +184,7 @@ function BankGateView() {
                     <DbCell className={`${td} num whitespace-nowrap text-muted-foreground`}>{fmtTime(c.time)}</DbCell>
                     <DbCell className={td}>
                       <Tag color={statusColor[c.status]}>{statusLabel[c.status]}</Tag>
+                      {c.contactChangedDays !== undefined ? <Tag color="yellow">Call-back contact changed {c.contactChangedDays} days earlier</Tag> : null}
                     </DbCell>
                   </DbRow>
                 ))}

@@ -4,6 +4,7 @@ import { refsOf } from "./groups";
 
 const DAY = 86_400_000;
 const iso = (ts: number) => new Date(ts).toISOString().replace(".000Z", "Z");
+const CONTACT_FIELDS = new Set(["contact_phone", "contact_email"]);
 
 // The bank-change gate: every bank-account change must carry an approval reference that is present,
 // unique and in sequence. A change that fails is held for a call-back before the next payment run.
@@ -23,6 +24,8 @@ export function checkBank(changes: ChangeRow[]): { bank: BankChange[]; alerts: A
     maxSeen = Math.max(maxSeen, +m[1]);
   }
 
+  const contactRows = changes.filter((c) => CONTACT_FIELDS.has(c.field));
+  const escalated = new Set<string>();
   const bank: BankChange[] = bankRows.map((c) => {
     let status: BankStatus = "approved";
     let why = "Approval reference present and in sequence.";
@@ -30,12 +33,20 @@ export function checkBank(changes: ChangeRow[]): { bank: BankChange[]; alerts: A
     else if (/^BULK-/.test(c.approvalRef)) { status = "bulk"; why = "Bulk import with a BULK reference."; }
     else if (outOfOrder.has(c.id)) { status = "out-of-sequence"; why = "Reference number is out of sequence with its date."; }
     else if ((seen.get(c.approvalRef) ?? 0) > 1) { status = "out-of-sequence"; why = "Reference was already used for another change."; }
+    // A change made through a software key is never waved through on a reference alone: references can be guessed or forged.
+    if (c.channel === "API" && status === "approved") { status = "api-channel"; why = "Made through the API by a software key. Held for a call-back even though it carries a reference."; }
+    // The call-back number is the weak spot: if the supplier's contact changed shortly before the bank account, a call to it proves nothing.
+    const earlier = contactRows.filter((r) => r.vendorId === c.vendorId && r.ts < c.ts && c.ts - r.ts <= 14 * DAY).sort((a, b) => b.ts - a.ts)[0];
+    const contactChangedDays = earlier ? Math.round(((c.ts - earlier.ts) / DAY) * 10) / 10 : undefined;
+    const weak = status === "missing" || status === "out-of-sequence";
     const recent = c.ts >= endTs - 14 * DAY;
-    const hold = (status === "missing" && (c.channel === "API" || recent)) || status === "out-of-sequence";
+    const hold = (status === "missing" && (c.channel === "API" || recent)) || status === "out-of-sequence" || c.channel === "API" || (contactChangedDays !== undefined && weak);
+    if (contactChangedDays !== undefined && weak) escalated.add(c.id);
+    if (contactChangedDays !== undefined && weak) why += ` The supplier's call-back contact changed ${contactChangedDays} days earlier: phone a number from the contract, not one from the request.`;
     return {
       id: c.id, vendorId: c.vendorId, vendor: c.vendor, oldValue: c.oldValue, newValue: c.newValue, changedBy: c.changedBy,
       channel: c.channel, approvalRef: c.approvalRef, time: iso(c.ts), sourceIp: c.sourceIp, requestId: c.requestId,
-      evidence: `${c.file} line ${c.line}`, status, why, hold,
+      evidence: `${c.file} line ${c.line}`, status, why, hold, ...(contactChangedDays !== undefined ? { contactChangedDays } : {}),
     };
   }).reverse();
 
@@ -58,6 +69,8 @@ export function checkBank(changes: ChangeRow[]): { bank: BankChange[]; alerts: A
     };
 
   const apiMissing = rowsOf((c) => c.channel === "API" && !c.approvalRef);
+  const apiWithRef = rowsOf((c) => c.channel === "API" && !!c.approvalRef);
+  const contactFirst = rowsOf((c) => escalated.has(c.id));
   const uiMissing = rowsOf((c) => c.channel !== "API" && !c.approvalRef);
   const oos = rowsOf((c) => outOfOrder.has(c.id));
   const bulk = rowsOf((c) => c.channel === "IMPORT" && /^BULK-/.test(c.approvalRef));
@@ -66,6 +79,12 @@ export function checkBank(changes: ChangeRow[]): { bank: BankChange[]; alerts: A
     mk(apiMissing, { id: "", title: "Supplier bank account changed through the API with no approval", severity: "critical", status: "open",
       rule: `The change log shows a blank approval reference on a change made by a software key. ${apiAll} of ${total} bank changes came through the API, and this is the only one without approval.`,
       normal: `The other bank changes were made on screen (${uiAll}) or by bulk import (${impAll}), from office addresses.` }),
+    mk(apiWithRef, { id: "", title: "Bank account changed through the API", severity: "high", status: "open",
+      rule: "A software key changed a supplier's bank account. A reference is present, but references can be guessed or forged, so the change is held for a call-back anyway.",
+      normal: "Bank changes are made on screen by finance staff or by a reviewed bulk import." }),
+    mk(contactFirst, { id: "", title: "Call-back contact changed shortly before a weakly approved bank change", severity: "high", status: "review",
+      rule: "The supplier's phone or email was changed in the 14 days before its bank account, and the bank change has no sound approval. A call to the new number proves nothing, so the change is held.",
+      normal: "Contact details and bank details are not usually changed together without a reference." }),
     mk(oos, { id: "", title: "Approval reference out of sequence", severity: "high", status: "review",
       rule: "The reference number does not fit the date it was used. Every other reference rises with time. It could be a mistake, a reused approval or a back-dated one, and only a call-back will tell.",
       normal: "References rise with time, one per change." }),

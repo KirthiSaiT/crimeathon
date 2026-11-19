@@ -115,10 +115,14 @@ We replayed the controls one at a time against the 237 attacker events.
 ## 9. What is built and what is designed
 | Layer | Status |
 |---|---|
-| 5 Watch, 7 hold list, claim checker, key scoring, timeline, scorecard, simulator | **Built and tested** |
-| Approver-only release | Built in the demo, browser-side only |
-| 6 Quarantine | Simulated |
-| 1 Short-lived keys, 2 enforcement, 3 split rights, 4 sessions and database roles | **Designed, not built** (Supabase schema exists, not applied) |
+| 5 Watch: detector, claim checker, key scoring, timeline, scorecard, simulator | **Built and tested** (32 tests) |
+| 4 Roles and sessions | **Built**: five roles, permissions in the database, two-person rule, audit trail, 15-minute idle sign-out (`docs/RBAC.md`) |
+| 1 Short-lived keys | **Built in a simulation**: keys that rotate on a timer an administrator sets, with a grace window (`docs/KEY_VAULT.md`). Real keys at the vendor: requests only |
+| 2 Address limit | **Built in a simulation**: ranges per key, monitor then enforce, suggested from use. The case keys get a tightest-block advice computed from the logs |
+| 3 Narrow job | **Built**: advice per case key from what it did, and a split action in the vault that makes one narrow key per job |
+| 6 Cut off | **Built in a simulation**: a critical event quarantines or revokes the key automatically. Case keys get a quarantine request |
+| 7 Guard the money | **Built**: a key never changes a bank account (the change is held), API changes always held, weak approval plus a changed contact held, two-person release, a payment-run view |
+| Not built | Vault-issued keys for the real systems, a verified call-back number (the evidence has none), MFA before a bank change, the optional AI layer |
 
 ## 10. Limits
 - Attacker labels are our own attribution, so a clean score shows consistency, not proof.

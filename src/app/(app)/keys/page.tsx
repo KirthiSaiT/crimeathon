@@ -14,8 +14,15 @@ import { useKeyActions, type KeyActionKind } from "@/lib/supabase/data";
 import { fmtDate } from "@/lib/format";
 
 const riskColor: Record<string, TagColor> = { High: "red", Medium: "yellow", Low: "green" };
-const actionLabel: Record<KeyActionKind, string> = { suspend: "Suspend", quarantine: "Quarantine (read only)", rotate: "Rotate", set_expiry: "Set an expiry" };
-const requestable: KeyActionKind[] = ["rotate", "quarantine", "suspend"];
+const actionLabel: Record<KeyActionKind, string> = {
+  suspend: "Suspend",
+  quarantine: "Quarantine (read only)",
+  rotate: "Rotate",
+  set_expiry: "Set an expiry",
+  narrow_scope: "Narrow its scope",
+  set_range: "Limit its addresses",
+};
+const requestable: KeyActionKind[] = ["narrow_scope", "set_range", "rotate", "quarantine", "suspend"];
 
 function KeysView() {
   const { state, retry } = useSlice((a) => a.keys);
@@ -106,6 +113,22 @@ function KeysView() {
                           </li>
                         ))}
                       </ul>
+                      {k.advice ? (
+                        <div className="mb-3 ml-11 flex max-w-3xl flex-col gap-2 border border-[var(--line)] border-l-[var(--rule-bar)] border-l-[var(--signal)] bg-[var(--bg-elevated)] p-3 text-sm">
+                          <p className="font-medium">A narrower key would have done the same job</p>
+                          <dl className="grid grid-cols-[9rem_1fr] gap-x-3 gap-y-1.5">
+                            <dt className="text-[var(--ink-tertiary)]">Allowed today</dt>
+                            <dd className="font-mono">{k.scope}</dd>
+                            <dt className="text-[var(--ink-tertiary)]">What it did</dt>
+                            <dd>{k.advice.used.join(", ")}</dd>
+                            <dt className="text-[var(--ink-tertiary)]">Narrow scope</dt>
+                            <dd>{k.advice.recommendedScope}</dd>
+                            <dt className="text-[var(--ink-tertiary)]">Address range</dt>
+                            <dd className="font-mono">{k.advice.recommendedRange ?? "none learned"}</dd>
+                          </dl>
+                          <p className="text-[var(--ink-secondary)]">{k.advice.note}</p>
+                        </div>
+                      ) : null}
                       <div className="flex flex-col gap-2 pb-4 pl-11 text-sm">
                         {actions
                           .filter((a) => a.credential_id === k.credential_id)

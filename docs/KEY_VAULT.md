@@ -34,6 +34,47 @@ Answers: `200` accepted, `401` unknown key, rotated out, expired or revoked, `40
 - A quarantined key still reads but cannot write: the read-only containment from the solution.
 - Every use, including refused ones, is logged, which is the kind of log the detector reads.
 
+## Guarding the money, step by step
+
+### 1. Address limit: only the right network can use a key
+- Each key has a list of allowed ranges (for example `10.20.4.0/27`) and a mode: **off**, **monitor** (a call from elsewhere is allowed but flagged) or **enforce** (it is refused).
+- **Suggest from use** reads the addresses a key has actually been used from and proposes them, so the range comes from behaviour.
+- The address comes from the network. For the demo the Try-a-key console lets the caller declare it with an `X-Source-IP` header, so the limits can be shown working. That header is honoured only outside production, or when `ALLOW_DECLARED_SOURCE=true`; otherwise only the forwarded address counts. A declared address would defeat a limit in real use.
+
+### 2. Cut off on a critical event
+- A call from outside the allowed range (enforce), an action outside the key's permissions, a write by a quarantined key, and any attempt to change a bank account are **critical**.
+- On a critical event the vault acts on the key as its owner chose: **quarantine** (read only, the default), **revoke**, or only record it. The cut-off is itself logged, with the reason.
+- A quarantined key keeps reading, so the service carries on, but every write is refused.
+
+### 3. Narrow, split jobs
+- **Split** looks at what a key actually did and makes one key for the reads and one for each separate write, with the same timer and address range. A bank-account change is never included. The broad key is revoked afterwards if you choose.
+- On the Keys page each key from the case logs shows what it was allowed, what it did, a narrow scope and the tightest address block around its computers, worked out from the logs. For the finance key that is four actions from six computers, `10.20.4.0/27`, which leaves the vendor build computer `10.20.4.77` outside, where the loose `10.20.4.0/24` range lets it in.
+
+### 4. Guard the money
+- In the simulated LedgerOne a key can **ask** to change a bank account but never makes the change. It is stored as a held request.
+- The **Payment run** page shows what the next run (the 8th and 23rd) will pay and what is blocked until released, and lists the changes the vault is holding. One person requests the release and a different person approves it, with a call-back note.
+- On the case data, a change made through the API is always held, even with an approval reference, and a weakly approved change is held when the supplier's phone or email changed in the 14 days before it. Where the contact changed first but the change is well approved, it is only tagged, so the supplied logs still hold exactly the two suspicious changes.
+
+### 5. The attack replay
+One click on the Key vault page runs the attack against two fresh keys and shows each defence firing:
+1. The real sync computer reads vendors: accepted.
+2. The same key, stolen, is used from a home-internet address: refused, and the key is cut off.
+3. The real computer can still read: the quarantine keeps the service up.
+4. A second key with the loose vendor range lets the build computer in: the lesson from the policy.
+5. It tries to change a bank account: held, not applied, and the key is cut off.
+6. It tries again: refused, quarantined.
+The supplier's account is unchanged at the end, and the held change waits on the Payment run page.
+
+### What the numbers say (from the case logs, each control alone)
+| Control | Attacker events blocked | Stops the bank change |
+|---|---|---|
+| Address limit that includes the vendor link (the written policy) | 46% | No |
+| Exact address limit per key | 99.2% | Yes |
+| Tightest address block around each key's computers | 99.2% | Yes |
+| Narrow each key to the actions it used | 73% | Yes |
+| Detector alert, revoke within 1 day | 51.5% | Yes |
+| All layers together (block, narrow actions, revoke in 1 day, bank gate) | 100% (237 of 237) | Yes |
+
 ## Who may do what
 | Permission | Who |
 |---|---|
@@ -49,3 +90,5 @@ All of this is enforced in the database: the functions check the permission them
 - The simulated API is open to anyone holding a secret, as a real API is. Supabase's security checker reports that function (`sim_api`) as callable without signing in; that is intended, and it checks the secret before doing anything.
 - The rotation timer has 15-second resolution, and the shortest rotation time is 1 minute.
 - The vault's log is separate from the evidence logs. Feeding it to the detector is a next step.
+- The "no verified call-back number" gap is real: the evidence holds no phone numbers, only that a phone or email changed. The rules use the change, not the number.
+- A narrow scope is built from observed use, so a rare legitimate action could look unused. Use monitor mode first.
