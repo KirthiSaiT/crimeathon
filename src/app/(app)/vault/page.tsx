@@ -18,6 +18,7 @@ import {
   SYSTEMS,
   useNow,
   useVault,
+  type Decision,
   type KeyStatus,
   type ManagedKey,
   type OnCritical,
@@ -51,6 +52,40 @@ const readOnly = (system: SystemId) => SYSTEMS[system].actions.filter((a) => !a.
 const minutesText = (seconds: number) => (seconds % 60 === 0 ? `${seconds / 60} min` : `${seconds} s`);
 const httpColor = (status: string): TagColor => (status.startsWith("2") ? (status === "202" ? "yellow" : "green") : "red");
 const selectClass = "h-9 border border-[var(--line-strong)] bg-[var(--bg-elevated)] px-2 text-sm";
+const decisionColor: Record<Decision, TagColor> = { ALLOWED: "green", SUSPICIOUS: "yellow", BLOCKED: "red" };
+
+// What the gateway said about one call: the verdict, how risky it looked, and why.
+interface GatewayVerdict {
+  status: number;
+  decision: Decision;
+  risk?: number;
+  policy?: string | null;
+  reasons?: string[];
+  recommend?: string | null;
+  trusted_source?: boolean;
+}
+
+function VerdictCard({ v }: { v: GatewayVerdict }) {
+  return (
+    <div role="status" className="flex max-w-2xl flex-col gap-2 border border-[var(--line)] border-l-[var(--rule-bar)] border-l-[var(--ink)] bg-[var(--bg-elevated)] p-4 text-sm">
+      <p className="flex flex-wrap items-center gap-2">
+        <Tag color={decisionColor[v.decision]}>{v.decision}</Tag>
+        <span className="num">HTTP {v.status}</span>
+        {typeof v.risk === "number" ? <span className="num">Risk {v.risk} of 100</span> : null}
+        {v.policy ? <Tag mono>{v.policy}</Tag> : null}
+      </p>
+      {v.reasons && v.reasons.length > 0 ? (
+        <ul className="list-disc pl-5">
+          {v.reasons.map((r) => (
+            <li key={r}>{r}</li>
+          ))}
+        </ul>
+      ) : null}
+      {v.recommend ? <p className="font-medium">Recommended: {v.recommend}.</p> : null}
+      {v.trusted_source === false ? <p className="text-[var(--ink-tertiary)]">The source address could not be trusted for this call.</p> : null}
+    </div>
+  );
+}
 
 function SecretDialog({ secret, title, onClose }: { secret: string | null; title: string; onClose: () => void }) {
   const [copied, setCopied] = useState(false);
@@ -201,6 +236,7 @@ function VaultView() {
   const [cSource, setCSource] = useState("10.20.4.12");
   const [cResult, setCResult] = useState<string | null>(null);
   const [sending, setSending] = useState(false);
+  const [verdict, setVerdict] = useState<GatewayVerdict | null>(null);
 
   // replay
   const [replayRes, setReplayRes] = useState<ReplayResult | null>(null);
@@ -266,6 +302,7 @@ function VaultView() {
   const send = async () => {
     setSending(true);
     setCResult(null);
+    setVerdict(null);
     let params: unknown = {};
     try {
       params = cParams.trim() ? JSON.parse(cParams) : {};
@@ -280,6 +317,7 @@ function VaultView() {
       const res = await fetch(`/api/sim/${cSystem}`, { method: "POST", headers, body: JSON.stringify({ action: cAction, params }) });
       const body = await res.json().catch(() => ({}));
       setCResult(`${res.status} ${res.status === 202 ? "held for people" : res.ok ? "accepted" : "refused"}\n${JSON.stringify(body, null, 2)}`);
+      setVerdict(body && typeof body.decision === "string" ? { status: res.status, ...body } : null);
     } catch {
       setCResult("The request did not reach the server.");
     }
@@ -585,7 +623,13 @@ function VaultView() {
               {sending ? "Sending" : "Send request"}
             </Button>
           </div>
-          {cResult ? <pre className="max-h-72 overflow-auto border border-[var(--line)] bg-[var(--bg-elevated)] p-3 font-mono text-xs whitespace-pre-wrap">{cResult}</pre> : null}
+          {verdict ? <VerdictCard v={verdict} /> : null}
+          {cResult ? (
+            <details>
+              <summary className="cursor-pointer text-sm text-[var(--ink-secondary)]">{verdict ? "The raw response" : "Response"}</summary>
+              <pre className="mt-2 max-h-72 overflow-auto border border-[var(--line)] bg-[var(--bg-elevated)] p-3 font-mono text-xs whitespace-pre-wrap">{cResult}</pre>
+            </details>
+          ) : null}
         </div>
       </Section>
 
@@ -653,6 +697,7 @@ function VaultView() {
                     <DbCell className={td}>
                       <span className="flex flex-wrap gap-1">
                         <Tag color={outcomeColor[e.outcome] ?? "gray"}>{e.outcome.replace("_", " ")}</Tag>
+                        {e.decision ? <Tag color={decisionColor[e.decision]}>{`${e.decision}${e.risk !== null ? ` ${e.risk}` : ""}`}</Tag> : null}
                         {e.critical ? <Tag color="red">Critical</Tag> : null}
                       </span>
                     </DbCell>
@@ -663,7 +708,10 @@ function VaultView() {
                     <DbCell className={`${td} font-mono`}>{e.source_ip ?? ""}</DbCell>
                     <DbCell className={td}>{e.system ? (SYSTEMS[e.system as SystemId]?.label ?? e.system) : ""}</DbCell>
                     <DbCell className={`${td} font-mono`}>{e.action ?? ""}</DbCell>
-                    <DbCell className={`${td} whitespace-normal`}>{e.reason ?? ""}</DbCell>
+                    <DbCell className={`${td} whitespace-normal`}>
+                      {e.reason ?? ""}
+                      {e.reasons && e.reasons.length > 0 && e.decision !== "BLOCKED" ? <span className="block text-[var(--ink-tertiary)]">{e.reasons.join(". ")}</span> : null}
+                    </DbCell>
                   </DbRow>
                 ))}
               </DbBody>

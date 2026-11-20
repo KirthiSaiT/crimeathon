@@ -40,7 +40,13 @@ export interface KeyEvent {
   secret_prefix: string | null;
   source_ip: string | null;
   critical: boolean;
+  // How the gateway judged the call: a score from 0 to 100, the verdict, and the reasons behind it.
+  risk: number | null;
+  decision: Decision | null;
+  reasons: string[] | null;
 }
+
+export type Decision = "ALLOWED" | "SUSPICIOUS" | "BLOCKED";
 
 export interface PendingChange {
   id: string;
@@ -121,7 +127,7 @@ export const SOURCES: { ip: string; label: string }[] = [
 
 const COLUMNS =
   "id, system, name, scope, status, rotation_seconds, grace_seconds, auto_rotate, allowed_ranges, range_mode, on_critical, parent_id, prefix, version, created_at, rotated_at, expires_at";
-const EVENT_COLUMNS = "id, at, key_name, system, action, outcome, reason, secret_prefix, source_ip, critical";
+const EVENT_COLUMNS = "id, at, key_name, system, action, outcome, reason, secret_prefix, source_ip, critical, risk, decision, reasons";
 const POLL_MS = 4000;
 
 const friendly = (message: string) => (/row-level security|permission denied/i.test(message) ? "Your role does not allow this." : message);

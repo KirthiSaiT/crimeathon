@@ -48,3 +48,5 @@ next-env.d.ts
 .prod.log
 
 .e2e/
+
+warden_metrics_*.txt

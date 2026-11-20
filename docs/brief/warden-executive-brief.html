@@ -1,0 +1,86 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>Warden: One-Page Project Executive Brief</title>
+<style>
+  @page { size: A4; margin: 0; }
+  :root { --navy: #0f1b33; --blue: #1f6fb2; --ink: #1b1f27; --muted: #5b6270; --line: #d9dee6; --chip: #eef1f5; --green: #0a7a3d; --red: #b3261e; --amber: #a85a00; }
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  html, body { width: 210mm; height: 297mm; overflow: hidden; background: #fff; color: var(--ink); font-family: Arial, "Segoe UI", Helvetica, sans-serif; font-size: 8.5pt; line-height: 1.32; }
+  .page { width: 210mm; height: 297mm; padding: 9.5mm 12mm 6mm; display: flex; flex-direction: column; }
+  .strap { font-size: 7.2pt; font-weight: 700; letter-spacing: .6px; color: var(--blue); }
+  h1 { font-size: 16.5pt; line-height: 1.1; margin: 1.5mm 0 2.4mm; font-weight: 800; white-space: nowrap; }
+  .facts { display: grid; grid-template-columns: 1.15fr 1fr 1fr; border: 1px solid var(--line); margin-bottom: 2.4mm; }
+  .facts div { padding: 1.5mm 2.2mm; font-size: 7.9pt; border-right: 1px solid var(--line); }
+  .facts div:last-child { border-right: 0; }
+  h2 { font-size: 9pt; font-weight: 800; letter-spacing: .3px; text-transform: uppercase; padding-bottom: .8mm; margin: 2.4mm 0 1.3mm; border-bottom: 1px solid var(--line); }
+  .rule { border-top: 2px solid var(--ink); margin-bottom: .6mm; }
+  p { margin: 0 0 1.2mm; }
+  code { font-family: Consolas, "Courier New", monospace; font-size: 7.4pt; background: var(--chip); border: 1px solid var(--line); border-radius: 2px; padding: 0 1mm; }
+  table { width: 100%; border-collapse: collapse; font-size: 7.9pt; }
+  th { background: var(--navy); color: #fff; text-align: left; font-weight: 700; padding: 1.1mm 1.8mm; }
+  td { padding: 1mm 1.8mm; border: 1px solid var(--line); vertical-align: top; }
+  tr td:first-child { white-space: nowrap; }
+  ul { padding-left: 3.8mm; }
+  li { margin-bottom: 1mm; }
+  .ok { color: var(--green); font-weight: 800; }
+  .no { color: var(--red); font-weight: 800; }
+  .warn { color: var(--amber); font-weight: 800; }
+  .box { border-left: 1.4mm solid var(--blue); background: #f5f8fc; padding: 1.5mm 2.6mm; margin-top: 2.4mm; }
+  .box p { margin: 0 0 .8mm; }
+  .box p:last-child { margin: 0; }
+  footer { margin-top: auto; padding-top: 1.4mm; border-top: 1px solid var(--line); display: flex; justify-content: space-between; font-size: 7.2pt; color: var(--muted); }
+</style>
+</head>
+<body>
+<div class="page">
+  <div class="strap">ONE-PAGE PROJECT EXECUTIVE BRIEF &bull; CRIMEATHON&rsquo;26 CASE CR-26-047 &bull; TEAM H4CK_077</div>
+  <h1>Warden &mdash; Behavioral Key Defense &amp; Bank-Change Gate</h1>
+  <div class="facts">
+    <div><b>Stack:</b> Next.js 16, TypeScript, Tailwind, shadcn/ui, Supabase (PostgreSQL, row-level security)</div>
+    <div><b>Security Engines:</b> Frozen baseline, CIDR address limits, hashed-key vault, secret scanner</div>
+    <div><b>Validation:</b> 24/24 browser tests, 119 live-database checks, 74 unit tests, E01&ndash;E19 evidence</div>
+  </div>
+  <div class="rule"></div>
+
+  <h2>1. Objective &amp; Architecture</h2>
+  <p><b>Warden</b> is a defensive control layer for the gap in this case: a <i>valid</i> third-party key was misused to reach finance data and change a supplier&rsquo;s bank account. It learns each key&rsquo;s normal behavior, enforces per-key limits at a gateway, holds unapproved bank changes for a call-back and two people, and tests the vendor&rsquo;s claims against the logs, through four decoupled modules:</p>
+  <table>
+    <tr><th style="width:17%">Module</th><th style="width:19%">Engine Role</th><th>Core Defensive Controls</th></tr>
+    <tr><td><code>src/engine</code></td><td>Behavior &amp; Evidence Engine</td><td>Reads logs by their columns, so any filename works. Learns each key&rsquo;s usual hosts and actions, frozen at mid-span. Groups alerts (240 flagged events become 23 groups). Checks approval references (<code>E19</code>), ranks key risk, tests 8 vendor claims, scores itself, replays the attack.</td></tr>
+    <tr><td><code>Key vault</code></td><td>Key Control Gateway</td><td>Hashed secrets, timed auto-rotation with a grace window, per-key address ranges (off / monitor / enforce), scope limits, automatic cut-off (quarantine or revoke). Source address trusted only from the gateway. Live risk score with reasons.</td></tr>
+    <tr><td><code>Bank gate</code></td><td>Money Control</td><td>Holds bank changes with no or out-of-sequence approval, made through the API, or after a recent contact change. A key can never apply a change. Release needs an analyst&rsquo;s request and a different approver.</td></tr>
+    <tr><td><code>Access &amp; tickets</code></td><td>Identity &amp; Secret Guard</td><td>Sign-in required; viewer, analyst, approver, admin and vendor roles enforced by the database; audit log. Ticket scanner refuses secrets, alerts an admin and rotates a leaked live key.</td></tr>
+  </table>
+
+  <h2>2. Multi-Layer Defense Mechanisms</h2>
+  <ul>
+    <li><b>Frozen Behavioral Baseline:</b> Learns each key&rsquo;s usual hosts and actions from the first half of the logs, then freezes it, so the attacker&rsquo;s own traffic cannot become &ldquo;normal&rdquo;. Measured: <b>237 of 237</b> attack events detected, <b>0 false alarms in 41,616</b> ordinary events. Unchanged with renumbered hosts and shifted clocks; <b>177 of 237</b> if the attacker rides a real sync computer.</li>
+    <li><b>Bank-Change Gate:</b> The case&rsquo;s V-0412 change (<code>****4417</code> to <code>****9083</code>, <code>E19</code> line 313) and V-0233 (<code>E19</code> line 243) are held before payment. Release takes a call-back, an analyst&rsquo;s request and a different person&rsquo;s approval.</li>
+    <li><b>Key Containment &amp; Trusted Source:</b> A claimed private address is ignored; a private address arriving from the public internet is blocked as forged. Every call is judged <b>ALLOWED</b>, <b>SUSPICIOUS</b> or <b>BLOCKED</b>, with a 0&ndash;100 risk and reasons.</li>
+    <li><b>Secret Scanner:</b> Tickets and comments are scanned for keys, tokens, private keys and passwords before saving (the <code>TKT-48213</code> pattern). A hit is refused, an admin is alerted and a live vault key is replaced at once.</li>
+  </ul>
+
+  <h2>3. Verification Matrix &amp; Operational Scope</h2>
+  <table>
+    <tr><th style="width:31%">Simulated Attack / Vector</th><th style="width:33%">Mechanism Verified</th><th>Observed Outcome</th></tr>
+    <tr><td>Valid key, allowed address, usual action</td><td>Per-key policy + frozen baseline</td><td><span class="ok">ALLOWED</span> &mdash; logged, risk 0</td></tr>
+    <tr><td>Key used from outside its range</td><td>Enforce-mode address limit</td><td><span class="no">BLOCKED</span> 403 &mdash; key quarantined</td></tr>
+    <tr><td>Claimed private address (direct call)</td><td>Gateway-trusted source + forged check</td><td><span class="no">BLOCKED</span> 403 &mdash; claim ignored; forgery blocked</td></tr>
+    <tr><td>Action outside the key&rsquo;s scope</td><td>Scope check + automatic cut-off</td><td><span class="no">BLOCKED</span> 403 &mdash; key cut off</td></tr>
+    <tr><td>Key asks to change V-0412&rsquo;s bank account</td><td>Bank-change rule + two-person release</td><td><span class="warn">HELD</span> 202 &mdash; account unchanged</td></tr>
+    <tr><td>New address + new action, settled key</td><td>Live per-key risk score</td><td><span class="warn">SUSPICIOUS</span> &mdash; risk 60, quarantine advised</td></tr>
+    <tr><td>Live vault key pasted into a ticket</td><td>Regex scanner + vault rotation</td><td><span class="no">REFUSED</span> &mdash; admin alerted, key replaced</td></tr>
+    <tr><td>Vendor account reads or writes case data</td><td>Role permissions + row-level security</td><td><span class="no">REFUSED</span> &mdash; 0 rows, API 403</td></tr>
+  </table>
+
+  <div class="box">
+    <p><b>Security Boundary &amp; Deployment:</b> Warden sits <i>beside</i> the systems it protects, so a compromise of one cannot switch the defense off. Today it analyses the real exported case logs (109,061 events in about 1 second) and enforces on a simulated LedgerOne / HelpDeskr / BlueVault gateway holding made-up data. Live use needs each system&rsquo;s log feed and a gateway check. It pairs with, and does not replace, endpoint antivirus. Launch locally via <code>npm run dev</code>.</p>
+    <p><b>Limitation:</b> Our suspicious-activity labels are our interpretation of the logs, so results show how consistently the rules agree with it, not attacker identity or performance in every real environment.</p>
+  </div>
+
+  <footer><span>Warden &bull; Behavioral Key Defense &amp; Bank-Change Gate</span><span>Page 1 of 1</span></footer>
+</div>
+</body>
+</html>

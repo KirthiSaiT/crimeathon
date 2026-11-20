@@ -1,6 +1,6 @@
-import { isIP } from "node:net";
 import { connection, NextResponse } from "next/server";
 import { createClient } from "@supabase/supabase-js";
+import { resolveSource } from "@/lib/net";
 
 // The simulated systems (LedgerOne, HelpDeskr, BlueVault) answer here. A caller presents a key as a bearer
 // token and names an action; the database checks the key the way a real API gateway would.
@@ -22,18 +22,28 @@ export async function POST(request: Request, { params }: { params: Promise<{ sys
   const action = typeof body.action === "string" ? body.action.slice(0, 60) : "";
   const callParams = body.params && typeof body.params === "object" && !Array.isArray(body.params) ? body.params : {};
 
-  // The source address. A real gateway reads it from the network; here the caller may declare it with
-  // X-Source-IP so the address limits can be shown working, and otherwise the forwarded address is used.
-  // A caller-declared address defeats an address limit in real use, so it is honoured only outside production
-  // or when ALLOW_DECLARED_SOURCE=true. In production the address comes from the forwarded header alone.
-  const mayDeclare = process.env.NODE_ENV !== "production" || process.env.ALLOW_DECLARED_SOURCE === "true";
-  const forwarded = request.headers.get("x-forwarded-for")?.split(",")[0] ?? "";
-  const declared = ((mayDeclare ? request.headers.get("x-source-ip") : null) ?? forwarded).trim();
-  const source = isIP(declared) ? declared : null;
+  // The source address. A caller can write anything into X-Forwarded-For or X-Source-IP, so only the entry our own
+  // proxy appended is believed (TRUSTED_PROXY_HOPS, default 1 in production). A caller-declared address (X-Source-IP)
+  // is honoured only outside production or when ALLOW_DECLARED_SOURCE=true, so the address limits can be demonstrated.
+  // A private address claimed by a request that came from the public side is reported as forged.
+  const production = process.env.NODE_ENV === "production";
+  const { source, forged } = resolveSource((name) => request.headers.get(name), {
+    hops: Number(process.env.TRUSTED_PROXY_HOPS ?? (production ? 1 : 0)),
+    mayDeclare: !production || process.env.ALLOW_DECLARED_SOURCE === "true",
+  });
 
-  // No session: the key is the only credential, as with any API.
+  // The database accepts a source address only from this route, which proves itself with GATEWAY_SECRET. Without
+  // the secret every call counts as coming from an unknown address, so an address limit refuses it.
   const supabase = createClient(url, key, { auth: { persistSession: false, autoRefreshToken: false } });
-  const { data, error } = await supabase.rpc("sim_api", { p_system: system, p_secret: secret, p_action: action, p_params: callParams, p_source: source });
+  const { data, error } = await supabase.rpc("sim_api", {
+    p_system: system,
+    p_secret: secret,
+    p_action: action,
+    p_params: callParams,
+    p_source: source,
+    p_gateway: process.env.GATEWAY_SECRET ?? null,
+    p_forged: forged,
+  });
   if (error || !data) return NextResponse.json({ ok: false, reason: "the gateway could not be reached" }, { status: 502 });
   return NextResponse.json(data, { status: typeof data.status === "number" ? data.status : 500 });
 }

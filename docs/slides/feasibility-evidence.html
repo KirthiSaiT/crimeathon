@@ -1,0 +1,90 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>Warden: Feasibility and Evidence</title>
+<style>
+  :root {
+    --paper: #f4f1ea;
+    --ink: #121212;
+    --muted: #55524b;
+    --line: #cfc9bb;
+    --accent: #0e5a52;
+    --warn: #a8321c;
+  }
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  html, body { width: 1920px; height: 1080px; background: var(--paper); color: var(--ink); font-family: "Segoe UI", "Helvetica Neue", Arial, sans-serif; overflow: hidden; }
+  .slide { width: 1920px; height: 1080px; padding: 72px 96px 0; display: flex; flex-direction: column; }
+  header { display: flex; justify-content: space-between; align-items: flex-end; border-bottom: 4px solid var(--ink); padding-bottom: 26px; }
+  h1 { font-size: 76px; line-height: 1; font-weight: 800; letter-spacing: -1px; }
+  .sub { font-size: 30px; color: var(--muted); margin-top: 14px; }
+  .brand { font-size: 30px; font-weight: 700; letter-spacing: 1px; }
+  main { display: grid; grid-template-columns: 1.05fr 1fr 1fr; gap: 64px; margin-top: 44px; flex: 1; }
+  h2 { font-size: 30px; font-weight: 700; padding-bottom: 14px; border-bottom: 2px solid var(--line); margin-bottom: 26px; }
+  .big { font-size: 128px; font-weight: 800; line-height: 1; color: var(--accent); letter-spacing: -3px; }
+  .biglabel { font-size: 28px; color: var(--muted); margin: 6px 0 30px; }
+  .funnel { display: flex; flex-direction: column; gap: 14px; }
+  .step { display: flex; align-items: baseline; gap: 18px; font-size: 32px; }
+  .step b { font-size: 52px; font-weight: 800; min-width: 130px; text-align: right; }
+  .step.hold b { color: var(--warn); }
+  .step span { color: var(--muted); }
+  .foot { margin-top: 26px; font-size: 25px; color: var(--muted); }
+  ul { list-style: none; display: flex; flex-direction: column; gap: 22px; }
+  li { font-size: 31px; line-height: 1.25; padding-left: 28px; position: relative; }
+  li::before { content: ""; position: absolute; left: 0; top: 14px; width: 12px; height: 12px; background: var(--accent); }
+  li b { font-weight: 800; }
+  .banner { margin: 0 -96px; background: var(--ink); color: var(--paper); padding: 30px 96px; font-size: 34px; line-height: 1.3; font-weight: 600; }
+  .banner em { font-style: normal; color: #9fd8cf; }
+</style>
+</head>
+<body>
+<div class="slide">
+  <header>
+    <div>
+      <h1>Feasibility and Evidence</h1>
+      <p class="sub">Built, tested and measured on the real case evidence</p>
+    </div>
+    <div class="brand">WARDEN</div>
+  </header>
+
+  <main>
+    <section>
+      <h2>The evidence, measured</h2>
+      <div class="big">109,061</div>
+      <p class="biglabel">real events analysed, from 9 files (10.8 MB)</p>
+      <div class="funnel">
+        <div class="step"><b>240</b><span>events flagged</span></div>
+        <div class="step"><b>23</b><span>alert groups to read</span></div>
+        <div class="step hold"><b>2</b><span>bank changes held</span></div>
+      </div>
+      <p class="foot">Whole evidence analysed in about 1 second.</p>
+    </section>
+
+    <section>
+      <h2>Feasibility, tested</h2>
+      <ul>
+        <li><b>86 MB</b> (8 times the evidence) analysed in <b>under 9 seconds</b></li>
+        <li>Every page loads in <b>0.31 s or less</b></li>
+        <li><b>24 of 24</b> browser tests pass</li>
+        <li><b>119 of 119</b> live-database checks pass</li>
+        <li><b>74</b> unit tests pass</li>
+        <li>Standard stack. No special hardware, no custom ML model.</li>
+      </ul>
+    </section>
+
+    <section>
+      <h2>What it gives you</h2>
+      <ul>
+        <li>Stolen key? <b>Cut off automatically.</b></li>
+        <li>Bank-account change? <b>Held until a phone call and two different people confirm.</b></li>
+        <li>Secret pasted in a ticket? <b>Refused, and the key is replaced at once.</b></li>
+        <li>Faked internal address? <b>Rejected.</b></li>
+        <li>Roles and a full audit trail. <b>Independent of the systems it protects.</b></li>
+      </ul>
+    </section>
+  </main>
+
+  <div class="banner">In simulation, the case attack is flagged <em>weeks before</em> the bank change, and the change is <em>held before payment</em>.</div>
+</div>
+</body>
+</html>

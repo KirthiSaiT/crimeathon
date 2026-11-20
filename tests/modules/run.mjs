@@ -57,10 +57,24 @@ const refused = async (p, what) => {
   if (!r.error) throw new Error(`${what} should have been refused`);
   return r.error.message.slice(0, 60);
 };
-const gate = (secret, action, ip, params = {}, system = "ledgerone") => anon.rpc("sim_api", { p_system: system, p_secret: secret, p_action: action, p_params: params, p_source: ip ?? null }).then((r) => {
-  if (r.error) throw new Error(r.error.message);
-  return r.data;
-});
+// The gateway as a client reaches it: over HTTP through the web route, which is the only caller the database trusts for a
+// source address. A demo declares its address with X-Source-IP (honoured outside production only).
+const BASE = process.env.BASE_URL ?? "http://localhost:3000";
+const GATEWAY = env.GATEWAY_SECRET;
+const gate = async (secret, action, ip, params = {}, system = "ledgerone") => {
+  const res = await fetch(`${BASE}/api/sim/${system}`, {
+    method: "POST",
+    headers: { "content-type": "application/json", authorization: `Bearer ${secret}`, ...(ip ? { "x-source-ip": ip } : {}) },
+    body: JSON.stringify({ action, params }),
+  });
+  return res.json();
+};
+// A direct call to the database function, the way an attacker holding only the public key would make it.
+const direct = (secret, action, claimedIp, extra = {}) =>
+  anon.rpc("sim_api", { p_system: "ledgerone", p_secret: secret, p_action: action, p_params: {}, p_source: claimedIp, ...extra }).then((r) => {
+    if (r.error) throw new Error(r.error.message);
+    return r.data;
+  });
 const sleep = (ms) => new Promise((r) => setTimeout(r, ms));
 const T = Date.now().toString(36);
 const mk = (name, scope, o = {}) =>
@@ -271,6 +285,79 @@ await check("A signed-out visitor cannot reveal or read a secret", async () => {
 });
 const s8 = await mk("auto", ["vendors.read"], { rotation: 60, grace: 0, auto: true });
 const autoBefore = await keyRow("auto");
+
+// ---------------------------------------------------------------- Real user or attacker: address trust and risk score
+module_("Address trust and risk score");
+const sa = await mk("trust", ["vendors.read", "vendors.bank.read"], { ranges: ["10.20.4.0/28"], mode: "enforce", critical: "none" });
+await check("A real internal call through the gateway is allowed", async () => {
+  const r = await gate(sa, "vendors.read", "10.20.4.5");
+  if (r.status !== 200 || r.decision !== "ALLOWED") throw new Error(`${r.status} ${r.decision}`);
+  return `risk ${r.risk}`;
+});
+await check("ATTACK: a direct database call claiming the allowed address is refused (the claim is ignored)", async () => {
+  const r = await direct(sa, "vendors.read", "10.20.4.5");
+  if (r.ok) throw new Error("the claimed address was believed");
+  if (r.trusted_source) throw new Error("a direct call was treated as trusted");
+  return `${r.status} ${r.policy}`;
+});
+await check("ATTACK: a direct call with a wrong gateway secret is refused too", async () => {
+  const r = await direct(sa, "vendors.read", "10.20.4.5", { p_gateway: "not-the-secret" });
+  if (r.ok) throw new Error("a wrong secret was accepted");
+  return `${r.status} ${r.policy}`;
+});
+await check("The same direct call cannot make a bank-change key look internal either", async () => {
+  const k = await mk("trust-bank", ["vendors.bank.write"], { ranges: ["10.20.4.0/28"], mode: "enforce", critical: "none" });
+  const r = await direct(k, "vendors.bank.write", "10.20.4.5");
+  if (r.ok || r.status === 202) throw new Error("the change was held, so the claimed address was believed");
+  return `${r.status} ${r.policy}`;
+});
+await check("ATTACK: a private address claimed from the public internet is blocked as a forgery, and the key is cut off", async () => {
+  const k = await mk("forged", ["vendors.read"], { critical: "quarantine" });
+  const r = await direct(k, "vendors.read", null, { p_gateway: GATEWAY, p_forged: true });
+  if (r.status !== 403 || r.policy !== "ADDRESS-FORGED") throw new Error(`${r.status} ${r.policy}`);
+  const row = await keyRow("forged");
+  if (row.status === "active") throw new Error("the key was not cut off");
+  return `key ${row.status}`;
+});
+await check("A key's first calls are judged as 'not enough history', not as suspicious", async () => {
+  const k = await mk("young", ["vendors.read"]);
+  const r = await gate(k, "vendors.read", "10.20.4.5");
+  if (r.decision !== "ALLOWED") throw new Error(r.decision);
+  if (!r.reasons.some((x) => /Not enough history/.test(x))) throw new Error(JSON.stringify(r.reasons));
+});
+const sb = await mk("baseline", ["vendors.read", "vendors.bank.read"], { critical: "none" });
+await check("A key that has settled into a routine is allowed with a low score", async () => {
+  for (let i = 0; i < 6; i++) await gate(sb, "vendors.read", "10.20.4.5");
+  const r = await gate(sb, "vendors.read", "10.20.4.5");
+  if (r.decision !== "ALLOWED" || r.risk >= 30) throw new Error(`${r.decision} ${r.risk}`);
+});
+await check("SUSPICIOUS: the same key from an address it has never used is scored, with the reason", async () => {
+  const r = await gate(sb, "vendors.read", "10.20.4.99");
+  if (r.decision !== "SUSPICIOUS") throw new Error(`${r.decision} ${r.risk}`);
+  if (!r.reasons.some((x) => /First call from 10\.20\.4\.99/.test(x))) throw new Error(JSON.stringify(r.reasons));
+  return `risk ${r.risk}`;
+});
+await check("SUSPICIOUS and recommended for restriction: a new address plus a new action", async () => {
+  const r = await gate(sb, "vendors.bank.read", "10.20.4.150");
+  if (r.decision !== "SUSPICIOUS" || r.risk < 60) throw new Error(`${r.decision} ${r.risk}`);
+  if (!/quarantine/.test(r.recommend ?? "")) throw new Error(`recommend: ${r.recommend}`);
+  return `risk ${r.risk}: ${r.recommend}`;
+});
+await check("SUSPICIOUS: a sudden burst of calls is flagged as unusual volume", async () => {
+  const k = await mk("burst", ["vendors.read"], { critical: "none" });
+  let last;
+  for (let i = 0; i < 24; i++) last = await gate(k, "vendors.read", "10.20.4.5");
+  if (!last.reasons.some((x) => /Unusual volume/.test(x))) throw new Error(`${last.decision} ${JSON.stringify(last.reasons)}`);
+  return `risk ${last.risk}`;
+});
+await check("The verdict is written onto the key's event log, where the dashboard reads it", async () => {
+  const rows = await ok(admin.from("key_events").select("decision, risk, reasons").eq("key_name", `modtest-baseline-${T}`).eq("decision", "SUSPICIOUS").limit(1));
+  if (!rows.length || !rows[0].reasons?.length) throw new Error("no scored event");
+});
+await check("A blocked call carries the policy it broke and a risk of 100", async () => {
+  const r = await gate(sa, "files.read", "10.20.4.5", { id: "F-1" });
+  if (r.decision !== "BLOCKED" || r.policy !== "KEY-SCOPE" || r.risk !== 100) throw new Error(`${r.decision} ${r.policy} ${r.risk}`);
+});
 
 // ---------------------------------------------------------------- Support tickets
 module_("Support tickets and the secret scanner");
