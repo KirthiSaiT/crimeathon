@@ -91,7 +91,7 @@ export function addFile(into: Parsed, name: string, text: string, options: Parti
     } else if (kind === "flows") {
       into.events.push({ ...base, ts: isoMs(cols.ts_utc), system: "Network link", actor: "vendor-link", actorKind: "integration", source: cols.src_ip, sig: `flow ${cols.dst_system}`, action: `flow ${cols.dst_system}`, object: cols.dst_system, detail: cols.src_label, records: +cols.bytes_out || 0, status: cols.result });
     } else {
-      const row: ChangeRow = { file: id, line, id: cols.change_id, ts: isoMs(cols.ts_utc), vendorId: cols.vendor_id, vendor: cols.vendor_name, field: cols.field, oldValue: cols.old_value, newValue: cols.new_value, changedBy: cols.changed_by, channel: cols.channel, approvalRef: cols.approval_ref, sourceIp: cols.source_ip, requestId: cols.request_id ?? "" };
+      const row: ChangeRow = { file: id, line, id: cols.change_id, ts: isoMs(cols.ts_utc), vendorId: cols.vendor_id, vendor: cols.vendor_name, field: cols.field, oldValue: cols.old_value, newValue: cols.new_value, changedBy: cols.changed_by, channel: cols.channel, approvalRef: (cols.approval_ref ?? "").trim(), sourceIp: cols.source_ip, requestId: cols.request_id ?? "" };
       into.changes.push(row);
     }
   }

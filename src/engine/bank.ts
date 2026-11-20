@@ -27,11 +27,18 @@ export function checkBank(changes: ChangeRow[]): { bank: BankChange[]; alerts: A
 
   const contactRows = changes.filter((c) => CONTACT_FIELDS.has(c.field));
   const escalated = new Set<string>();
+  // A reference that is not a real kind of reference at all (made-up text, or a BULK reference on a change that was not a bulk import).
+  const invalid = new Set<string>();
   const bank: BankChange[] = bankRows.map((c) => {
     let status: BankStatus = "approved";
     let why = "Approval reference present and in sequence.";
     if (!c.approvalRef) { status = "missing"; why = "No approval reference recorded."; }
-    else if (/^BULK-/.test(c.approvalRef)) { status = "bulk"; why = "Bulk import with a BULK reference."; }
+    else if (/^BULK-[A-Za-z0-9-]+$/.test(c.approvalRef) && c.channel === "IMPORT") { status = "bulk"; why = "Bulk import with a BULK reference."; }
+    else if (!/^APR-\d+$/.test(c.approvalRef)) {
+      status = "missing";
+      invalid.add(c.id);
+      why = /^BULK-/.test(c.approvalRef) ? `A BULK reference (${c.approvalRef}) is only valid on a bulk import, not on a change made ${c.channel === "API" ? "through the API" : "on screen"}.` : `"${c.approvalRef}" is not a valid approval reference. A real one looks like APR-1234.`;
+    }
     else if (outOfOrder.has(c.id)) { status = "out-of-sequence"; why = "Reference number is out of sequence with its date."; }
     else if ((seen.get(c.approvalRef) ?? 0) > 1) { status = "out-of-sequence"; why = "Reference was already used for another change."; }
     // A change made through a software key is never waved through on a reference alone: references can be guessed or forged.
@@ -41,7 +48,7 @@ export function checkBank(changes: ChangeRow[]): { bank: BankChange[]; alerts: A
     const contactChangedDays = earlier ? Math.round(((c.ts - earlier.ts) / DAY) * 10) / 10 : undefined;
     const weak = status === "missing" || status === "out-of-sequence";
     const recent = c.ts >= endTs - 14 * DAY;
-    const hold = (status === "missing" && (c.channel === "API" || recent)) || status === "out-of-sequence" || c.channel === "API" || (contactChangedDays !== undefined && weak);
+    const hold = (status === "missing" && (c.channel === "API" || recent)) || status === "out-of-sequence" || c.channel === "API" || invalid.has(c.id) || (contactChangedDays !== undefined && weak);
     if (contactChangedDays !== undefined && weak) escalated.add(c.id);
     if (contactChangedDays !== undefined && weak) why += ` The supplier's call-back contact changed ${contactChangedDays} days earlier: phone a number from the contract, not one from the request.`;
     return {
@@ -71,6 +78,7 @@ export function checkBank(changes: ChangeRow[]): { bank: BankChange[]; alerts: A
 
   const apiMissing = rowsOf((c) => c.channel === "API" && !c.approvalRef);
   const apiWithRef = rowsOf((c) => c.channel === "API" && !!c.approvalRef);
+  const invalidRows = rowsOf((c) => invalid.has(c.id));
   const contactFirst = rowsOf((c) => escalated.has(c.id));
   const uiMissing = rowsOf((c) => c.channel !== "API" && !c.approvalRef);
   const oos = rowsOf((c) => outOfOrder.has(c.id));
@@ -83,6 +91,9 @@ export function checkBank(changes: ChangeRow[]): { bank: BankChange[]; alerts: A
     mk(apiWithRef, { id: "", title: "Bank account changed through the API", severity: "high", status: "open",
       rule: "A software key changed a supplier's bank account. A reference is present, but references can be guessed or forged, so the change is held for a call-back anyway.",
       normal: "Bank changes are made on screen by finance staff or by a reviewed bulk import." }),
+    mk(invalidRows, { id: "", title: "Bank change with an invalid approval reference", severity: "high", status: "open",
+      rule: "The approval reference is not one the approval system issues: it is made-up text, or a BULK reference on a change that was not a bulk import. The change is held for a call-back.",
+      normal: "Approval references look like APR-1234, and BULK references appear only on bulk imports." }),
     mk(contactFirst, { id: "", title: "Call-back contact changed shortly before a weakly approved bank change", severity: "high", status: "review",
       rule: "The supplier's phone or email was changed in the 14 days before its bank account, and the bank change has no sound approval. A call to the new number proves nothing, so the change is held.",
       normal: "Contact details and bank details are not usually changed together without a reference." }),

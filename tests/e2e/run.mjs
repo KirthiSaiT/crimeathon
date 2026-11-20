@@ -250,11 +250,9 @@ async function main() {
     if (!text.includes("38")) throw new Error("38 events not shown");
   });
 
-  let fullNoFacts = "";
   await test("T05", "All eight files without case facts", "109,061 events, 24 alert groups, 2 suppliers on hold.", async (rec) => {
     await clearState();
     const r = await upload(LOGS);
-    fullNoFacts = r.summary;
     rec.notes.push(r.summary);
     if (!/109,061 events read, 24 alert groups, 2 suppliers on hold/.test(r.summary)) throw new Error(`Unexpected summary: ${r.summary}`);
     await driver.get(`${BASE}/claims`);
@@ -368,7 +366,7 @@ async function main() {
     await (await driver.findElement(By.xpath("//aside//button[contains(., 'Light mode')]"))).click();
   });
 
-  await test("T17", "Phone width: no sideways scroll and a menu", "Key pages fit 375 px wide and show a menu button.", async (rec) => {
+  await test("T17", "Phone width: no sideways scroll and a menu", "Key pages fit 375 px wide and show a menu button.", async () => {
     await driver.sendDevToolsCommand("Emulation.setDeviceMetricsOverride", { width: 375, height: 812, deviceScaleFactor: 1, mobile: true });
     const bad = [];
     for (const p of ["/overview", "/alerts", "/keys", "/bank-gate", "/upload", "/payment-run"]) {
@@ -407,6 +405,107 @@ async function main() {
     const p = await fetch(`${BASE}/api/analysis`, { method: "POST", body: fd });
     if (p.status !== 400) throw new Error(`POST junk answered ${p.status}`);
   });
+
+  // ---- Bank gate and payment run, through the screen
+  const e19 = fs.readFileSync(ev("E19_vendor_master_change_log.csv"), "utf8").split(/\r?\n/).filter(Boolean);
+  const hdr = e19[0].split(",");
+  const col = (n) => hdr.indexOf(n);
+  const bankRows = e19.slice(1).map((l) => l.split(",")).filter((c) => c[col("field")] === "bank_account");
+  const tabCount = async (label) => {
+    const t = await driver.executeScript("return [...document.querySelectorAll('[role=tab]')].map(b => b.innerText.trim())");
+    const hit = t.find((x) => x.startsWith(label));
+    return hit ? Number(hit.replace(/\D+/g, "")) : NaN;
+  };
+  const ledger = () =>
+    driver.executeScript(
+      "return [...document.querySelectorAll('dl.ledger > div > div')].map(d => [d.querySelector('dt')?.innerText.split('\\n')[0].trim(), d.querySelector('dd')?.innerText.trim()])",
+    );
+  const sectionText = async (title) =>
+    driver.executeScript(
+      "const h = [...document.querySelectorAll('section h2, section h3')].find(x => x.innerText.trim().startsWith(arguments[0])); return h ? h.closest('section').innerText : ''",
+      title,
+    );
+
+  await test("T20", "Bank gate: held changes, counts and filters", "Two suppliers on hold, tab counts match the change log, every bank change is in the table.", async () => {
+    await clearState();
+    await upload([...LOGS, PACK]);
+    await driver.get(`${BASE}/bank-gate`);
+    await waitFor(async () => (await mainText()).includes("Held for call-back") && (await count("table tbody tr")) > 0, 30000, "the bank gate");
+    const held = await sectionText("Held for call-back");
+    for (const v of ["V-0412", "V-0233"]) if (!held.includes(v)) throw new Error(`${v} is not in the held list`);
+    const tags = (held.match(/On hold/g) ?? []).length;
+    if (tags !== 2) throw new Error(`expected 2 holds, saw ${tags}`);
+    if ((held.match(/Release hold/g) ?? []).length !== 2) throw new Error("expected a Release button for each hold");
+    if ((await tabCount("Held")) !== 2) throw new Error("the Held tab does not say 2");
+    if ((await tabCount("All")) !== bankRows.length) throw new Error(`the All tab says ${await tabCount("All")}, the log has ${bankRows.length}`);
+    const missing = bankRows.filter((c) => !c[col("approval_ref")]).length;
+    if ((await tabCount("No approval")) !== missing) throw new Error(`No approval tab says ${await tabCount("No approval")}, the log has ${missing}`);
+    // the All view lists every bank change
+    await clickEl(await driver.findElement(By.xpath("//button[@role='tab'][starts-with(normalize-space(.), 'All')]")));
+    await waitFor(async () => (await count("table tbody tr")) === bankRows.length, 10000, `${bankRows.length} rows in the All view`);
+  }, "held");
+
+  await test("T21", "Bank gate: a signed-out visitor cannot release or request a release", "Release buttons are disabled and the page says to sign in.", async () => {
+    await driver.get(`${BASE}/bank-gate`);
+    await waitFor(async () => (await mainText()).includes("Held for call-back"), 20000, "the bank gate");
+    const states = await driver.executeScript("return [...document.querySelectorAll('button')].filter(b => /Release hold|Request release/.test(b.innerText)).map(b => b.disabled)");
+    if (states.length !== 2 || states.some((d) => !d)) throw new Error(`release buttons: ${JSON.stringify(states)}`);
+    if (!(await mainText()).includes("Sign in as an approver")) throw new Error("no sign-in message");
+  });
+
+  await test("T22", "Payment run: held changes are blocked and never payable", "Blocked count is 2, the held suppliers are not in Payable this run, and the next run date comes from the case facts.", async () => {
+    await driver.get(`${BASE}/payment-run`);
+    await waitFor(async () => (await mainText()).includes("Blocked until released") && (await count("dl.ledger")) > 0, 30000, "the payment run");
+    const stats = Object.fromEntries(await ledger());
+    if (stats["Blocked until released"] !== "2") throw new Error(`blocked is ${stats["Blocked until released"]}, expected 2`);
+    if (!stats["Next payment run"]) throw new Error("no next payment run date");
+    const blocked = await sectionText("Blocked until released");
+    for (const v of ["V-0412", "V-0233"]) if (!blocked.includes(v)) throw new Error(`${v} not in the blocked list`);
+    const payable = await sectionText("Payable this run");
+    for (const v of ["V-0412", "V-0233"]) if (payable.includes(v)) throw new Error(`${v} is payable while on hold`);
+    const rows = await driver.executeScript("const h=[...document.querySelectorAll('section h2, section h3')].find(x=>x.innerText.trim().startsWith('Payable this run')); return h ? h.closest('section').querySelectorAll('table tbody tr').length : -1");
+    if (String(rows) !== stats["Payable this run"]) throw new Error(`the Payable figure is ${stats["Payable this run"]} but ${rows} rows are listed`);
+  }, "payment-run");
+
+  await test("T23", "Payment run without case facts still blocks the holds", "No run days known: nothing is payable, the two holds stay blocked.", async () => {
+    await clearState();
+    await upload(LOGS);
+    await driver.get(`${BASE}/payment-run`);
+    await waitFor(async () => (await mainText()).includes("Blocked until released") && (await count("dl.ledger")) > 0, 30000, "the payment run");
+    const stats = Object.fromEntries(await ledger());
+    if (stats["Blocked until released"] !== "2") throw new Error(`blocked is ${stats["Blocked until released"]}`);
+    if (stats["Payable this run"] !== undefined) throw new Error("a payable figure was shown without run days");
+    if ((await mainText()).includes("Payable this run")) throw new Error("a payable section was shown without run days");
+  });
+
+  await test("T24", "A made-up approval reference is held and explained", "A reference of FORGED-1 on an ordinary on-screen change adds a third hold, on the Bank gate, the Payment run and the Alerts page.", async () => {
+    const pick = bankRows.findIndex((c, i) => i > 3 && c[col("channel")] === "UI" && /^APR-\d+$/.test(c[col("approval_ref")]));
+    const target = bankRows[pick];
+    const lines = e19.map((l) => {
+      const c = l.split(",");
+      if (c[col("change_id")] === target[col("change_id")]) {
+        c[col("approval_ref")] = "FORGED-1";
+        return c.join(",");
+      }
+      return l;
+    });
+    const altered = path.join(TMP, "E19_forged_reference.csv");
+    fs.writeFileSync(altered, lines.join("\n"));
+    await clearState();
+    await upload([altered, PACK]);
+    await driver.get(`${BASE}/bank-gate`);
+    await waitFor(async () => (await mainText()).includes("Held for call-back"), 20000, "the bank gate");
+    await waitFor(async () => (await sectionText("Held for call-back")).includes("is not a valid approval reference"), 20000, "the explanation");
+    const held = await sectionText("Held for call-back");
+    if ((held.match(/On hold/g) ?? []).length !== 3) throw new Error(`expected 3 holds, saw ${(held.match(/On hold/g) ?? []).length}`);
+    if (!held.includes(target[col("vendor_id")])) throw new Error("the forged-reference supplier is not held");
+    await driver.get(`${BASE}/payment-run`);
+    await waitFor(async () => (await count("dl.ledger")) > 0, 20000, "the payment run");
+    const stats = Object.fromEntries(await ledger());
+    if (stats["Blocked until released"] !== "3") throw new Error(`blocked is ${stats["Blocked until released"]}, expected 3`);
+    await driver.get(`${BASE}/alerts`);
+    await waitFor(async () => (await mainText()).includes("invalid approval reference"), 20000, "the alert");
+  }, "forged");
 
   // ---- Timing: server analysis (worst-case dataset: all eight files plus case facts)
   console.log("\nTiming: server analysis");

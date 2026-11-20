@@ -14,7 +14,8 @@
     "e2e": "node tests/e2e/run.mjs",
     "e2e:report": "node tests/e2e/report.mjs",
     "test:bankgate": "node tests/bank-gate/run.mjs test",
-    "test:modules": "node tests/modules/run.mjs"
+    "test:modules": "node tests/modules/run.mjs",
+    "test:live": "node tests/live-release.run.mjs"
   },
   "dependencies": {
     "@base-ui/react": "^1.9.0",

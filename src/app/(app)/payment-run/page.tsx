@@ -15,31 +15,15 @@ import { useAuth } from "@/components/role-provider";
 import { useHoldReleases, useSettings } from "@/lib/supabase/data";
 import { usePendingChanges, type PendingChange } from "@/lib/supabase/vault";
 import { fmtDate, fmtTime } from "@/lib/format";
-import { maxOf } from "@/engine/num";
+import { splitPaymentRun } from "@/engine/payment";
 import type { BankChange } from "@/lib/types";
-
-const DAY = 86_400_000;
-
-// Given the days of the month payments run on, the run before a moment and the run after it.
-function runsAround(ts: number, days: number[]) {
-  const d = new Date(ts);
-  const y = d.getUTCFullYear();
-  const m = d.getUTCMonth();
-  const today = Date.UTC(y, m, d.getUTCDate());
-  const runs: number[] = [];
-  for (const offset of [-1, 0, 1, 2]) for (const day of days) runs.push(Date.UTC(y, m + offset, day));
-  runs.sort((x, y2) => x - y2);
-  const last = [...runs].reverse().find((r) => r <= today);
-  const next = runs.find((r) => r > today);
-  return last !== undefined && next !== undefined ? { last, next } : null;
-}
 
 const pendingColor: Record<PendingChange["status"], TagColor> = { held: "red", released: "green", rejected: "gray" };
 
 function PaymentRunView() {
   const { state, retry } = useSlice((a) => a.bank);
   const { state: whole } = useAnalysis();
-  const runDays = whole.status === "ready" ? whole.data.paymentRunDays : [];
+  const runDays = useMemo(() => (whole.status === "ready" ? whole.data.paymentRunDays : []), [whole]);
   const { status: authStatus, can, user, configured } = useAuth();
   const { released } = useHoldReleases();
   const { twoPersonRule } = useSettings();
@@ -50,11 +34,7 @@ function PaymentRunView() {
   const [failure, setFailure] = useState<string | null>(null);
 
   const changes: BankChange[] = useMemo(() => (state.status === "ready" ? state.data : []), [state]);
-  const end = useMemo(() => (changes.length ? maxOf(changes.map((c) => Date.parse(c.time))) : 0), [changes]);
-  const runs = end && runDays.length ? runsAround(end, runDays) : null;
-  const blocked = changes.filter((c) => c.hold && !released.includes(c.id));
-  const payable = runs ? changes.filter((c) => Date.parse(c.time) > runs.last && (!c.hold || released.includes(c.id))) : [];
-  const daysToRun = runs ? Math.round(((runs.next - end) / DAY) * 10) / 10 : 0;
+  const { end, runs, blocked, payable, daysToRun } = useMemo(() => splitPaymentRun(changes, released, runDays), [changes, released, runDays]);
 
   const close = () => {
     setDialog(null);
